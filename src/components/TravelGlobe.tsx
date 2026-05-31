@@ -12,6 +12,13 @@ import {
 } from "@/lib/globe/country-flag-object";
 import { type GlobeCountryMarker } from "@/lib/globe/country-flag-marker";
 import { getCountryFocusAltitude, type FocusZoomSource } from "@/lib/globe/country-focus-altitude";
+import {
+  getVisitedPolygonCapColor,
+  loadVisitedCountryPolygons,
+  VISITED_POLYGON_SIDE_COLOR,
+  VISITED_POLYGON_STROKE_COLOR,
+  type VisitedCountryPolygon,
+} from "@/lib/globe/visited-country-polygons";
 
 type MapData = {
   stats: MapStats;
@@ -32,6 +39,7 @@ const GLOBE_RADIUS = 100;
 export default function TravelGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeInstance | null>(null);
+  const selectionRef = useRef<MapCountry | null>(null);
   const [data, setData] = useState<MapData | null>(null);
   const [selection, setSelection] = useState<MapCountry | null>(null);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
@@ -65,9 +73,23 @@ export default function TravelGlobe() {
   }
 
   function selectCountry(country: MapCountry) {
+    selectionRef.current = country;
     setSelection(country);
     focusOnCountry(country, "list");
   }
+
+  useEffect(() => {
+    selectionRef.current = selection;
+    const globe = globeRef.current;
+    if (!globe) return;
+
+    globe.polygonCapColor((feature) =>
+      getVisitedPolygonCapColor(
+        (feature as VisitedCountryPolygon).properties?.ISO_A2,
+        selection?.country_code,
+      ),
+    );
+  }, [selection]);
 
   useEffect(() => {
     if (!data || !containerRef.current) return;
@@ -91,6 +113,10 @@ export default function TravelGlobe() {
           countryCode: c.country_code,
         }));
 
+        const countryByCode = new Map(
+          data!.countries.map((country) => [country.country_code, country]),
+        );
+
         const globe = new Globe(container, { animateIn: true })
           .globeImageUrl(TEXTURES.globe)
           .bumpImageUrl(TEXTURES.bump)
@@ -98,6 +124,36 @@ export default function TravelGlobe() {
           .showAtmosphere(true)
           .atmosphereColor("#3a228a")
           .atmosphereAltitude(0.15)
+          .polygonsData([])
+          .polygonCapColor((feature) =>
+            getVisitedPolygonCapColor(
+              (feature as VisitedCountryPolygon).properties?.ISO_A2,
+              selectionRef.current?.country_code,
+            ),
+          )
+          .polygonSideColor(() => VISITED_POLYGON_SIDE_COLOR)
+          .polygonStrokeColor(() => VISITED_POLYGON_STROKE_COLOR)
+          .polygonAltitude(0.006)
+          .polygonLabel((feature) => {
+            const code = (feature as VisitedCountryPolygon).properties?.ISO_A2;
+            const country = code ? countryByCode.get(code) : undefined;
+            return country ? `${country.country_name} · ${country.video_count} video` : "";
+          })
+          .onPolygonClick((feature: object) => {
+            const code = (feature as VisitedCountryPolygon).properties?.ISO_A2;
+            const country = code ? countryByCode.get(code) : undefined;
+            if (!country) return;
+            selectionRef.current = country;
+            setSelection(country);
+            globe.pointOfView(
+              {
+                lat: country.lat,
+                lng: country.lng,
+                altitude: getCountryFocusAltitude(country.country_code, "globe"),
+              },
+              FOCUS_ANIMATION_MS,
+            );
+          })
           .objectsData(markers)
           .objectLat("lat")
           .objectLng("lng")
@@ -111,6 +167,8 @@ export default function TravelGlobe() {
             const marker = obj as GlobeCountryMarker;
             const country = data!.countries.find((c) => c.country_code === marker.countryCode);
             if (!country) return;
+            selectionRef.current = country;
+            setSelection(country);
             globe.pointOfView(
               {
                 lat: country.lat,
@@ -132,6 +190,15 @@ export default function TravelGlobe() {
         controls.dampingFactor = 0.1;
         controls.maxDistance = GLOBE_RADIUS * (1 + MAX_GLOBE_ALTITUDE);
         globeRef.current = globe;
+
+        loadVisitedCountryPolygons(data!.countries.map((c) => c.country_code))
+          .then((polygons) => {
+            if (!mounted || globeRef.current !== globe) return;
+            globe.polygonsData(polygons);
+          })
+          .catch(() => {
+            /* bayraklar yine görünür; sınır katmanı opsiyonel */
+          });
 
         const handleResize = () => {
           if (!globeRef.current || !containerRef.current) return;
