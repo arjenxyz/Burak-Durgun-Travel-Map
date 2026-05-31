@@ -176,10 +176,12 @@ export default function WelcomeModal() {
           <div className="relative -mt-1 text-center">
             <p className="text-[11px] uppercase tracking-[0.18em] text-orange-400">Burak Durgun</p>
             <h2 id="welcome-title" className="mt-2 text-lg font-semibold text-white sm:text-xl">
-              Seyahat Haritası
+              Merhaba, ben Burak
             </h2>
-            <p className="mx-auto mt-2.5 max-w-[16rem] text-sm leading-relaxed text-zinc-400">
-              Gittiğim ülkeler burada. Bir ülkeye dokun, o gezinin videolarını izle.
+            <p className="mx-auto mt-2.5 max-w-[19rem] text-sm leading-relaxed text-zinc-400">
+              2017&apos;den beri gezdiğim yerleri YouTube&apos;da paylaşıyorum. Güney Amerika&apos;dan
+              Balkanlar&apos;a, kültürleri ve doğal güzellikleri bu haritada topladım — bir ülkeye
+              dokun, o gezinin videolarını izle.
             </p>
           </div>
         </div>
