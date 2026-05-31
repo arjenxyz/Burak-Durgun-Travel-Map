@@ -6,7 +6,7 @@ import type { GlobeInstance } from "globe.gl";
 import CountryList from "@/components/CountryList";
 import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
-import YoutubeChannelLink from "@/components/YoutubeChannelLink";
+import { YOUTUBE_CHANNEL_URL, YoutubeIcon } from "@/components/YoutubeChannelLink";
 
 type MapData = {
   stats: MapStats;
@@ -33,12 +33,24 @@ export default function TravelGlobe() {
   const globeRef = useRef<GlobeInstance | null>(null);
   const [data, setData] = useState<MapData | null>(null);
   const [selection, setSelection] = useState<MapCountry | null>(null);
+  const [countryListOpen, setCountryListOpen] = useState(false);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globeError, setGlobeError] = useState<string | null>(null);
 
-  const panelOpen = selection !== null || countrySheetOpen;
+  function toggleCountryList() {
+    if (window.matchMedia("(min-width: 768px)").matches) {
+      setCountryListOpen((open) => !open);
+    } else {
+      setCountrySheetOpen((open) => !open);
+    }
+  }
+
+  function closeCountryList() {
+    setCountryListOpen(false);
+    setCountrySheetOpen(false);
+  }
 
   useEffect(() => {
     fetch("/api/map")
@@ -163,7 +175,7 @@ export default function TravelGlobe() {
     const observer = new ResizeObserver(resizeGlobe);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [data, selection]);
+  }, [data, selection, countryListOpen]);
 
   if (loading) {
     return (
@@ -194,33 +206,43 @@ export default function TravelGlobe() {
             <h1 className="truncate text-lg font-semibold text-white md:text-2xl">
               Seyahat Haritası
             </h1>
-            <div className="mt-0.5 flex items-center gap-1.5">
-              <YoutubeChannelLink />
-              <p className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs">
+            <a
+              href={YOUTUBE_CHANNEL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 inline-flex items-center gap-1.5 transition hover:opacity-90 active:scale-[0.99]"
+              aria-label="Burak Durgun YouTube kanalı"
+            >
+              <span className="shrink-0 text-red-500">
+                <YoutubeIcon />
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs">
                 Burak Durgun
-              </p>
-            </div>
+              </span>
+            </a>
             <p className="mt-0.5 hidden text-sm text-zinc-400 sm:block">
               Gezilen ülkeler ve videolar
             </p>
           </div>
 
-          {data && (
-            <div className="flex shrink-0 gap-2">
-              <StatPill label="Ülke" value={data.stats.totalCountries} />
-              <StatPill label="Video" value={data.stats.totalVideos} />
-            </div>
+          {data && data.stats.totalCountries > 0 && (
+            <CountryCountButton
+              count={data.stats.totalCountries}
+              open={countryListOpen || countrySheetOpen}
+              onClick={toggleCountryList}
+            />
           )}
         </div>
       </header>
 
       <div className="relative flex min-h-0 flex-1">
-        {data && data.countries.length > 0 && (
+        {data && data.countries.length > 0 && countryListOpen && (
           <div className="glass-panel hidden w-60 shrink-0 border-r border-white/10 md:flex lg:w-64">
             <CountryList
               countries={data.countries}
               selectedCode={selection?.country_code}
               onSelect={selectCountry}
+              onClose={closeCountryList}
               className="w-full"
             />
           </div>
@@ -258,25 +280,12 @@ export default function TravelGlobe() {
         )}
       </div>
 
-      {!panelOpen && data && data.countries.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-zinc-950/95 px-3 py-2 backdrop-blur-md safe-bottom md:hidden">
-          <button
-            type="button"
-            onClick={() => setCountrySheetOpen(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-medium text-white active:bg-orange-400"
-          >
-            <span>🌍</span>
-            Ülkeler ({data.countries.length})
-          </button>
-        </div>
-      )}
-
       {data && (
         <MobileCountrySheet
           open={countrySheetOpen}
           countries={data.countries}
           selectedCode={selection?.country_code}
-          onClose={() => setCountrySheetOpen(false)}
+          onClose={closeCountryList}
           onSelect={selectCountry}
         />
       )}
@@ -290,11 +299,29 @@ export default function TravelGlobe() {
   );
 }
 
-function StatPill({ label, value }: { label: string; value: number }) {
+function CountryCountButton({
+  count,
+  open,
+  onClick,
+}: {
+  count: number;
+  open: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div className="rounded-xl border border-white/10 bg-zinc-900/60 px-3 py-2 text-center backdrop-blur">
-      <p className="text-base font-semibold tabular-nums text-white md:text-lg">{value}</p>
-      <p className="text-[10px] text-zinc-500 md:text-xs">{label}</p>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={open ? "Ülke listesini kapat" : "Ülke listesini aç"}
+      className={`shrink-0 rounded-xl border px-3 py-2 text-center backdrop-blur transition ${
+        open
+          ? "border-orange-500/40 bg-orange-500/15"
+          : "border-white/10 bg-zinc-900/60 hover:border-white/20 hover:bg-zinc-900/80"
+      }`}
+    >
+      <p className="text-base font-semibold tabular-nums text-white md:text-lg">{count}</p>
+      <p className="text-[10px] text-zinc-500 md:text-xs">Ülke</p>
+    </button>
   );
 }

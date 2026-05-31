@@ -6,6 +6,7 @@ type Props = {
   countries: MapCountry[];
   selectedCode?: string;
   onSelect: (country: MapCountry) => void;
+  onClose?: () => void;
   className?: string;
 };
 
@@ -13,15 +14,28 @@ export default function CountryList({
   countries,
   selectedCode,
   onSelect,
+  onClose,
   className = "",
 }: Props) {
   if (countries.length === 0) return null;
 
   return (
     <aside className={`flex min-h-0 flex-col ${className}`}>
-      <div className="shrink-0 border-b border-white/10 px-4 py-3">
-        <p className="text-xs uppercase tracking-wider text-orange-400">Ülkeler</p>
-        <p className="text-sm text-zinc-400">{countries.length} ülke</p>
+      <div className="flex shrink-0 items-start justify-between gap-2 border-b border-white/10 px-4 py-3">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-orange-400">Ülkeler</p>
+          <p className="text-sm text-zinc-400">{countries.length} ülke</p>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg px-2 py-1 text-sm text-zinc-400 hover:bg-white/5"
+            aria-label="Kapat"
+          >
+            ✕
+          </button>
+        )}
       </div>
       <ul className="panel-scroll flex-1 overflow-y-auto overscroll-contain p-2">
         {countries.map((country) => (
