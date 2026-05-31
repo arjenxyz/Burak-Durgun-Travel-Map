@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
 
+const APP_ICON = "/burak-durgun-youtube.png";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Burak Durgun — Seyahat Haritası",
-    short_name: "Travel Map",
+    short_name: "Burak Durgun",
     description: "Burak Durgun'un gezdiği ülkeler ve şehirler — interaktif 3D harita",
     start_url: "/",
     display: "standalone",
@@ -14,20 +16,14 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["travel", "entertainment"],
     icons: [
       {
-        src: "/icon",
-        sizes: "512x512",
+        src: APP_ICON,
+        sizes: "160x160",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/apple-icon",
-        sizes: "180x180",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/icon",
-        sizes: "512x512",
+        src: APP_ICON,
+        sizes: "160x160",
         type: "image/png",
         purpose: "maskable",
       },
