@@ -175,12 +175,11 @@ export default function WelcomeModal() {
 
           <div className="relative -mt-1 text-center">
             <p className="text-[11px] uppercase tracking-[0.18em] text-orange-400">Burak Durgun</p>
-            <h2 id="welcome-title" className="mt-2 text-lg font-semibold leading-snug text-white sm:text-xl">
-              Gezdiğim dünyayı seninle paylaşıyorum
+            <h2 id="welcome-title" className="mt-2 text-lg font-semibold text-white sm:text-xl">
+              Seyahat Haritası
             </h2>
-            <p className="mx-auto mt-3 max-w-[18rem] text-sm leading-relaxed text-zinc-400">
-              Yıllardır kamerayla dolaştığım ülkeleri bu haritaya işledim. Bir noktaya dokun —
-              o yolculuğun videolarını birlikte izleyelim.
+            <p className="mx-auto mt-2.5 max-w-[16rem] text-sm leading-relaxed text-zinc-400">
+              Gittiğim ülkeler burada. Bir ülkeye dokun, o gezinin videolarını izle.
             </p>
           </div>
         </div>
@@ -202,7 +201,7 @@ export default function WelcomeModal() {
             <span className="text-red-500">
               <YoutubeIcon size={16} />
             </span>
-            YouTube kanalıma git
+            YouTube kanalı
           </a>
         </div>
       </div>
