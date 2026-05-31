@@ -61,10 +61,10 @@ export default function VideoPanel({ country, onClose, variant = "sheet" }: Prop
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-white/5 active:bg-white/10"
+          className="shrink-0 rounded-lg px-2 py-1 text-xs text-zinc-400 hover:bg-white/5 active:bg-white/10 md:px-3 md:py-2 md:text-sm"
           aria-label="Kapat"
         >
-          ✕
+          Kapat
         </button>
       </div>
 

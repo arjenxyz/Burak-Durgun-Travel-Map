@@ -30,10 +30,10 @@ export default function CountryList({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg px-2 py-1 text-sm text-zinc-400 hover:bg-white/5"
+            className="shrink-0 rounded-lg px-2 py-1 text-xs text-zinc-400 hover:bg-white/5 md:text-sm"
             aria-label="Kapat"
           >
-            ✕
+            Kapat
           </button>
         )}
       </div>

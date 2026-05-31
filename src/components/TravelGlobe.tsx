@@ -200,30 +200,27 @@ export default function TravelGlobe() {
   const listOpen = countryListOpen || countrySheetOpen;
 
   return (
-    <div className="relative flex h-full flex-col md:block">
-      <header className="relative z-20 shrink-0 border-b border-white/5 bg-zinc-950/70 px-3 py-2.5 backdrop-blur-md md:absolute md:inset-x-0 md:top-0 md:border-b-0 md:bg-gradient-to-b md:from-zinc-950/90 md:via-zinc-950/45 md:to-transparent md:px-8 md:py-6 md:backdrop-blur-none">
-        <div className="flex items-center justify-between gap-2 md:mx-auto md:max-w-[1600px] md:gap-3">
-          <div className="flex min-w-0 flex-1 flex-col-reverse md:flex-col">
-            <h1 className="mt-0.5 truncate text-xs font-normal tracking-wide text-zinc-500 md:mt-0 md:text-3xl md:font-semibold md:text-white md:tracking-tight lg:text-4xl">
+    <div className="relative flex h-full flex-col">
+      <header className="relative z-20 shrink-0 border-b border-white/5 bg-zinc-950/80 px-3 py-2.5 backdrop-blur-md md:px-6 md:py-3">
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-2 md:gap-3">
+          <div className="flex min-w-0 flex-1 flex-col-reverse">
+            <h1 className="mt-0.5 truncate text-xs font-normal tracking-wide text-zinc-500 md:text-sm">
               Seyahat Haritası
             </h1>
             <a
               href={YOUTUBE_CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 transition hover:opacity-90 active:scale-[0.99] md:mt-1.5 md:gap-2"
+              className="inline-flex items-center gap-1.5 transition hover:opacity-90 active:scale-[0.99] md:gap-2"
               aria-label="Burak Durgun YouTube kanalı"
             >
               <span className="shrink-0 text-red-500 [&_svg]:h-4 [&_svg]:w-4 md:[&_svg]:h-[18px] md:[&_svg]:w-[18px]">
                 <YoutubeIcon size={16} />
               </span>
-              <span className="truncate text-sm font-semibold uppercase tracking-[0.14em] text-orange-400 md:text-xs md:font-normal md:tracking-[0.2em]">
+              <span className="truncate text-sm font-semibold uppercase tracking-[0.14em] text-orange-400 md:text-[15px]">
                 Burak Durgun
               </span>
             </a>
-            <p className="mt-0.5 hidden text-sm text-zinc-400 md:mt-2 md:block md:text-zinc-500">
-              Gezilen ülkeler ve videolar
-            </p>
           </div>
 
           {data && data.stats.totalCountries > 0 && (
@@ -236,7 +233,7 @@ export default function TravelGlobe() {
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1 md:absolute md:inset-0">
+      <div className="relative min-h-0 flex-1">
         <div ref={containerRef} className="absolute inset-0 touch-none" />
 
         {globeError && (
@@ -245,7 +242,7 @@ export default function TravelGlobe() {
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.12)_55%,rgba(9,9,11,0.45)_100%)] md:opacity-70" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.12)_55%,rgba(9,9,11,0.45)_100%)]" />
 
         {isEmpty && (
           <div className="absolute inset-0 flex items-center justify-center px-4">
@@ -256,14 +253,8 @@ export default function TravelGlobe() {
           </div>
         )}
 
-        {!isEmpty && !selection && !listOpen && (
-          <p className="pointer-events-none absolute bottom-8 left-1/2 hidden -translate-x-1/2 rounded-full border border-white/10 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-400 backdrop-blur md:block">
-            Haritadan bir ülke seç veya ülke listesini aç
-          </p>
-        )}
-
         {data && data.countries.length > 0 && countryListOpen && (
-          <div className="floating-panel panel-enter-left absolute bottom-5 left-5 top-24 z-30 hidden w-72 overflow-hidden md:flex lg:w-80">
+          <div className="floating-panel panel-enter-left absolute bottom-3 left-3 top-3 z-30 hidden w-72 overflow-hidden md:flex lg:bottom-4 lg:left-4 lg:top-4 lg:w-80">
             <CountryList
               countries={data.countries}
               selectedCode={selection?.country_code}
@@ -275,7 +266,7 @@ export default function TravelGlobe() {
         )}
 
         {selection && (
-          <div className="floating-panel panel-enter-right absolute bottom-5 right-5 top-24 z-30 hidden w-[min(100%,22rem)] overflow-hidden md:flex lg:w-96">
+          <div className="floating-panel panel-enter-right absolute bottom-3 right-3 top-3 z-30 hidden w-[min(100%,20rem)] overflow-hidden md:flex lg:bottom-4 lg:right-4 lg:top-4 lg:w-96">
             <VideoPanel
               country={selection}
               onClose={() => setSelection(null)}
@@ -319,17 +310,14 @@ function CountryCountButton({
       onClick={onClick}
       aria-expanded={open}
       aria-label={open ? "Ülke listesini kapat" : "Ülke listesini aç"}
-      className={`flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 backdrop-blur transition md:gap-1.5 md:rounded-2xl md:px-4 md:py-2.5 ${
+      className={`flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 backdrop-blur transition md:px-3 md:py-2 ${
         open
           ? "border-orange-500/40 bg-orange-500/15"
           : "border-white/10 bg-zinc-900/60 hover:border-white/20 hover:bg-zinc-900/80"
       }`}
     >
-      <span className="hidden text-lg md:inline" aria-hidden>
-        🌍
-      </span>
-      <span className="text-sm font-semibold tabular-nums text-white md:text-xl">{count}</span>
-      <span className="text-xs text-zinc-400 md:text-xs">Ülke</span>
+      <span className="text-sm font-semibold tabular-nums text-white">{count}</span>
+      <span className="text-xs text-zinc-400">Ülke</span>
     </button>
   );
 }
