@@ -60,6 +60,15 @@ export default function WelcomeModal() {
     }
   }, []);
 
+  useEffect(() => {
+    if (visible) {
+      document.body.classList.add("welcome-modal-open");
+    } else {
+      document.body.classList.remove("welcome-modal-open");
+    }
+    return () => document.body.classList.remove("welcome-modal-open");
+  }, [visible]);
+
   function dismiss() {
     setClosing(true);
     window.setTimeout(() => {

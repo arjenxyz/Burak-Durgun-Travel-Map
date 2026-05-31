@@ -202,9 +202,17 @@ body {
 }
 
 .welcome-backdrop {
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(40px) saturate(1.15);
-  -webkit-backdrop-filter: blur(40px) saturate(1.15);
+  background: rgba(9, 9, 11, 0.55);
+}
+
+/* WebGL canvas backdrop-filter ile bulanıklaşmaz — harita katmanına doğrudan blur */
+body.welcome-modal-open #app-map-layer {
+  filter: blur(28px) brightness(0.25) saturate(0.7);
+  transform: scale(1.04);
+  pointer-events: none;
+  transition:
+    filter 0.4s ease,
+    transform 0.4s ease;
 }
 
 .welcome-overlay-in {
@@ -250,6 +258,12 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body.welcome-modal-open #app-map-layer {
+    filter: brightness(0.2);
+    transform: none;
+    transition: none;
+  }
+
   .welcome-overlay-in,
   .welcome-overlay-out,
   .welcome-modal-in,
