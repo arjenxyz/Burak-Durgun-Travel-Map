@@ -20,6 +20,8 @@ export type SyncResult = {
 export type SyncOptions = {
   mode?: "cron" | "full";
   parseLimit?: number;
+  /** Tüm konumları sil ve videoları yeniden parse et */
+  reparseAll?: boolean;
 };
 
 const UPSERT_CHUNK = 100;
@@ -108,6 +110,8 @@ async function parseVideo(
   let added = 0;
   let skipped = 0;
 
+  await supabase.from("video_locations").delete().eq("video_id", video.id);
+
   const places = parseLocationsFromVideo(video.title, video.description ?? "");
   if (places.length === 0) {
     await supabase.from("videos").update({ parsed_at: new Date().toISOString() }).eq("id", video.id);
@@ -166,6 +170,11 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
   let sourceReason: string | undefined;
 
   try {
+    if (options.reparseAll) {
+      await supabase.from("video_locations").delete().gte("confidence", 0);
+      await supabase.from("videos").update({ parsed_at: null }).neq("youtube_id", "");
+    }
+
     const fetched = await fetchAllVideos(channelId);
     source = fetched.source;
     youtubeApiKeyConfigured = fetched.youtubeApiKeyConfigured;

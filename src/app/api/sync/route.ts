@@ -17,11 +17,23 @@ function isAuthorized(request: NextRequest): boolean {
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const configured = Boolean(process.env.CRON_SECRET?.trim());
+    return NextResponse.json(
+      {
+        hata: "Yetkisiz",
+        error: "Unauthorized",
+        ipucu: configured
+          ? "secret parametresi veya Authorization header CRON_SECRET ile eşleşmiyor"
+          : "Vercel'de CRON_SECRET env tanımlı değil — ekleyip redeploy edin",
+        ornek: "GET /api/sync?secret=CRON_SECRET_DEGERINIZ",
+      },
+      { status: 401 },
+    );
   }
 
   try {
-    const result = await runSync({ mode: "cron" });
+    const reparse = request.nextUrl.searchParams.get("reparse") === "1";
+    const result = await runSync({ mode: "cron", reparseAll: reparse });
     return NextResponse.json({
       ok: true,
       mode: "cron",

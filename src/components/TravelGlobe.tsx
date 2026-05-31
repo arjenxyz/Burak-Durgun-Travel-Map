@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MapCity, MapCountry, MapStats } from "@/lib/supabase/client";
 import type { GlobeInstance } from "globe.gl";
+import CountryList from "@/components/CountryList";
 import VideoPanel from "@/components/VideoPanel";
 
 type MapData = {
@@ -22,15 +23,15 @@ type GlobePoint = {
   cityName?: string;
 };
 
+type Selection = {
+  country: MapCountry;
+  city?: string;
+};
+
 const TEXTURES = {
   globe: "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
   bump: "https://unpkg.com/three-globe/example/img/earth-topology.png",
   background: "https://unpkg.com/three-globe/example/img/night-sky.png",
-};
-
-type Selection = {
-  country: MapCountry;
-  city?: string;
 };
 
 export default function TravelGlobe() {
@@ -38,6 +39,7 @@ export default function TravelGlobe() {
   const globeRef = useRef<GlobeInstance | null>(null);
   const [data, setData] = useState<MapData | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [autoRotate, setAutoRotate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globeError, setGlobeError] = useState<string | null>(null);
@@ -53,6 +55,30 @@ export default function TravelGlobe() {
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const controls = globeRef.current?.controls();
+    if (controls) controls.autoRotate = autoRotate;
+  }, [autoRotate]);
+
+  function focusOnPoint(point: GlobePoint) {
+    const globe = globeRef.current;
+    if (!globe) return;
+    globe.controls().autoRotate = false;
+    setAutoRotate(false);
+    globe.pointOfView({ lat: point.lat, lng: point.lng, altitude: 1.6 }, 800);
+  }
+
+  function selectCountry(country: MapCountry, city?: string) {
+    setSelection({ country, city });
+    const cityRow = city
+      ? data?.cities.find((c) => c.country_code === country.country_code && c.city === city)
+      : undefined;
+    focusOnPoint({
+      lat: cityRow?.lat ?? country.lat,
+      lng: cityRow?.lng ?? country.lng,
+    } as GlobePoint);
+  }
 
   useEffect(() => {
     if (!data || !containerRef.current) return;
@@ -72,7 +98,7 @@ export default function TravelGlobe() {
         const countryPoints: GlobePoint[] = data!.countries.map((c) => ({
           lat: c.lat,
           lng: c.lng,
-          size: 0.5 + Math.min(c.video_count * 0.12, 1.5),
+          size: 0.55 + Math.min(c.video_count * 0.1, 1.2),
           color: "#f97316",
           label: `${c.country_name} · ${c.video_count} video`,
           type: "country" as const,
@@ -82,7 +108,7 @@ export default function TravelGlobe() {
         const cityPoints: GlobePoint[] = data!.cities.map((c) => ({
           lat: c.lat,
           lng: c.lng,
-          size: 0.35 + Math.min(c.video_count * 0.08, 1),
+          size: 0.4 + Math.min(c.video_count * 0.06, 0.9),
           color: "#38bdf8",
           label: `${c.city}, ${c.country_name} · ${c.video_count} video`,
           type: "city" as const,
@@ -102,28 +128,35 @@ export default function TravelGlobe() {
           .pointsData(points)
           .pointLat("lat")
           .pointLng("lng")
-          .pointAltitude(0.02)
-          .pointRadius((d) => (d as GlobePoint).size * 0.35)
+          .pointAltitude(0.03)
+          .pointRadius((d) => (d as GlobePoint).size * 0.45)
           .pointColor("color")
           .pointLabel("label")
           .onPointClick((point: object) => {
             const p = point as GlobePoint;
             const country = data!.countries.find((c) => c.country_code === p.countryCode);
             if (!country) return;
-
-            if (p.type === "city") {
-              setSelection({ country, city: p.cityName });
-            } else {
-              setSelection({ country });
-            }
+            focusOnPoint(p);
+            setSelection({
+              country,
+              city: p.type === "city" ? p.cityName : undefined,
+            });
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
 
-        globe.controls().autoRotate = true;
-        globe.controls().autoRotateSpeed = 0.5;
-        globe.controls().enableZoom = true;
+        const controls = globe.controls();
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.rotateSpeed = 0.35;
         globeRef.current = globe;
+
+        const stopRotate = () => {
+          controls.autoRotate = false;
+          setAutoRotate(false);
+        };
+        container.addEventListener("mousedown", stopRotate);
+        container.addEventListener("touchstart", stopRotate, { passive: true });
 
         const handleResize = () => {
           if (!globeRef.current || !containerRef.current) return;
@@ -135,6 +168,8 @@ export default function TravelGlobe() {
         window.addEventListener("resize", handleResize);
         return () => {
           window.removeEventListener("resize", handleResize);
+          container.removeEventListener("mousedown", stopRotate);
+          container.removeEventListener("touchstart", stopRotate);
           globeRef.current?._destructor();
           globeRef.current = null;
           container.innerHTML = "";
@@ -193,7 +228,7 @@ export default function TravelGlobe() {
             <p className="text-xs uppercase tracking-[0.2em] text-orange-400">Burak Durgun</p>
             <h1 className="mt-1 text-2xl font-semibold text-white md:text-3xl">Seyahat Haritası</h1>
             <p className="mt-2 max-w-xl text-sm text-zinc-300">
-              YouTube video başlıklarından otomatik çıkarılan ülke ve şehirler
+              Başlık odaklı konum tespiti — trend hashtag&apos;ler filtrelenir
             </p>
           </div>
 
@@ -207,19 +242,30 @@ export default function TravelGlobe() {
         </div>
       </header>
 
+      {data && data.countries.length > 0 && (
+        <CountryList
+          countries={data.countries}
+          selectedCode={selection?.country.country_code}
+          onSelect={(country) => selectCountry(country)}
+        />
+      )}
+
+      <div className="absolute right-4 top-28 z-10 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => setAutoRotate((v) => !v)}
+          className="rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 backdrop-blur hover:bg-white/5"
+        >
+          {autoRotate ? "Döndürmeyi durdur" : "Küreyi döndür"}
+        </button>
+      </div>
+
       {isEmpty && (
         <div className="absolute left-1/2 top-1/2 z-20 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-6">
           <div className="rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-6 text-center backdrop-blur">
             <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
             <p className="mt-2 text-sm text-zinc-400">
-              {data?.stats.totalVideos
-                ? `${data.stats.totalVideos} video var ama konum çıkarılamamış. Sync tekrar çalıştırın.`
-                : "Önce YouTube sync çalıştırılmalı."}
-            </p>
-            <p className="mt-3 text-xs text-zinc-500">
-              Yerelde: <code className="text-orange-300">npm run sync</code>
-              <br />
-              Canlıda: <code className="text-orange-300">/api/sync?secret=...</code>
+              Sync çalıştırın veya reparse ile yeniden parse edin.
             </p>
           </div>
         </div>
@@ -234,6 +280,7 @@ export default function TravelGlobe() {
         <p className="mt-1">
           <span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> Şehir
         </p>
+        <p className="mt-2 text-zinc-500">Sol listeden veya pin&apos;e tıkla</p>
       </div>
     </div>
   );

@@ -7,24 +7,19 @@ export type PlaceEntry = {
   confidence: number;
 };
 
-/** Turkish + English aliases → ISO country */
+/** Kaydedilecek minimum güven — altındakiler atılır */
+export const MIN_LOCATION_CONFIDENCE = 0.85;
+
+/** Sadece gerçek ülke adları — şehir adları burada OLMAMALI */
 export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
   fas: { code: "MA", name: "Morocco" },
   morocco: { code: "MA", name: "Morocco" },
-  marakesh: { code: "MA", name: "Morocco" },
-  marrakech: { code: "MA", name: "Morocco" },
 
   ispanya: { code: "ES", name: "Spain" },
   spain: { code: "ES", name: "Spain" },
-  sevilla: { code: "ES", name: "Spain" },
-  seville: { code: "ES", name: "Spain" },
-  barselona: { code: "ES", name: "Spain" },
-  barcelona: { code: "ES", name: "Spain" },
-  madrid: { code: "ES", name: "Spain" },
 
   brezilya: { code: "BR", name: "Brazil" },
   brazil: { code: "BR", name: "Brazil" },
-  rio: { code: "BR", name: "Brazil" },
 
   sili: { code: "CL", name: "Chile" },
   chile: { code: "CL", name: "Chile" },
@@ -45,25 +40,20 @@ export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
 
   japonya: { code: "JP", name: "Japan" },
   japan: { code: "JP", name: "Japan" },
-  tokyo: { code: "JP", name: "Japan" },
-  osaka: { code: "JP", name: "Japan" },
 
   kore: { code: "KR", name: "South Korea" },
   korea: { code: "KR", name: "South Korea" },
-  seoul: { code: "KR", name: "South Korea" },
 
   cin: { code: "CN", name: "China" },
   china: { code: "CN", name: "China" },
 
   tayland: { code: "TH", name: "Thailand" },
   thailand: { code: "TH", name: "Thailand" },
-  bangkok: { code: "TH", name: "Thailand" },
 
   vietnam: { code: "VN", name: "Vietnam" },
 
   endonezya: { code: "ID", name: "Indonesia" },
   indonesia: { code: "ID", name: "Indonesia" },
-  bali: { code: "ID", name: "Indonesia" },
 
   malezya: { code: "MY", name: "Malaysia" },
   malaysia: { code: "MY", name: "Malaysia" },
@@ -76,8 +66,6 @@ export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
 
   misir: { code: "EG", name: "Egypt" },
   egypt: { code: "EG", name: "Egypt" },
-  kahire: { code: "EG", name: "Egypt" },
-  cairo: { code: "EG", name: "Egypt" },
 
   guneyafrika: { code: "ZA", name: "South Africa" },
   southafrica: { code: "ZA", name: "South Africa" },
@@ -96,38 +84,27 @@ export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
 
   turkiye: { code: "TR", name: "Turkey" },
   turkey: { code: "TR", name: "Turkey" },
-  istanbul: { code: "TR", name: "Turkey" },
-  izmir: { code: "TR", name: "Turkey" },
 
   yunanistan: { code: "GR", name: "Greece" },
   greece: { code: "GR", name: "Greece" },
-  atina: { code: "GR", name: "Greece" },
-  athens: { code: "GR", name: "Greece" },
 
   italya: { code: "IT", name: "Italy" },
   italy: { code: "IT", name: "Italy" },
-  roma: { code: "IT", name: "Italy" },
-  rome: { code: "IT", name: "Italy" },
 
   fransa: { code: "FR", name: "France" },
   france: { code: "FR", name: "France" },
-  paris: { code: "FR", name: "France" },
 
   almanya: { code: "DE", name: "Germany" },
   germany: { code: "DE", name: "Germany" },
-  berlin: { code: "DE", name: "Germany" },
 
   hollanda: { code: "NL", name: "Netherlands" },
   netherlands: { code: "NL", name: "Netherlands" },
-  amsterdam: { code: "NL", name: "Netherlands" },
 
   belcika: { code: "BE", name: "Belgium" },
   belgium: { code: "BE", name: "Belgium" },
 
   ingiltere: { code: "GB", name: "United Kingdom" },
   uk: { code: "GB", name: "United Kingdom" },
-  london: { code: "GB", name: "United Kingdom" },
-  londra: { code: "GB", name: "United Kingdom" },
 
   portekiz: { code: "PT", name: "Portugal" },
   portugal: { code: "PT", name: "Portugal" },
@@ -139,35 +116,28 @@ export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
   austria: { code: "AT", name: "Austria" },
 
   cekya: { code: "CZ", name: "Czechia" },
-  prague: { code: "CZ", name: "Czechia" },
 
   polonya: { code: "PL", name: "Poland" },
   poland: { code: "PL", name: "Poland" },
 
   macaristan: { code: "HU", name: "Hungary" },
   hungary: { code: "HU", name: "Hungary" },
-  budapest: { code: "HU", name: "Hungary" },
 
   gurcistan: { code: "GE", name: "Georgia" },
   georgia: { code: "GE", name: "Georgia" },
-  tbilisi: { code: "GE", name: "Georgia" },
 
   azerbaycan: { code: "AZ", name: "Azerbaijan" },
   azerbaijan: { code: "AZ", name: "Azerbaijan" },
-  baku: { code: "AZ", name: "Azerbaijan" },
 
   ozbekistan: { code: "UZ", name: "Uzbekistan" },
   uzbekistan: { code: "UZ", name: "Uzbekistan" },
-  taskent: { code: "UZ", name: "Uzbekistan" },
 
   iran: { code: "IR", name: "Iran" },
   urdun: { code: "JO", name: "Jordan" },
   jordan: { code: "JO", name: "Jordan" },
-  israil: { code: "IL", name: "Israel" },
-  israel: { code: "IL", name: "Israel" },
+
   lubnan: { code: "LB", name: "Lebanon" },
   lebanon: { code: "LB", name: "Lebanon" },
-  beirut: { code: "LB", name: "Lebanon" },
 
   dubai: { code: "AE", name: "United Arab Emirates" },
   uae: { code: "AE", name: "United Arab Emirates" },
@@ -184,11 +154,9 @@ export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
 
   rusya: { code: "RU", name: "Russia" },
   russia: { code: "RU", name: "Russia" },
-  moskova: { code: "RU", name: "Russia" },
 
   sirbistan: { code: "RS", name: "Serbia" },
   serbia: { code: "RS", name: "Serbia" },
-  belgrad: { code: "RS", name: "Serbia" },
 
   avustralya: { code: "AU", name: "Australia" },
   australia: { code: "AU", name: "Australia" },
@@ -269,6 +237,7 @@ export const CITY_ALIASES: Record<
     countryName: "Turkey",
     geocodeQuery: "Istanbul, Turkey",
   },
+  izmir: { city: "Izmir", countryCode: "TR", countryName: "Turkey", geocodeQuery: "Izmir, Turkey" },
   tbilisi: {
     city: "Tbilisi",
     countryCode: "GE",
@@ -316,11 +285,37 @@ export const CITY_ALIASES: Record<
     countryName: "Lebanon",
     geocodeQuery: "Beirut, Lebanon",
   },
+  rio: { city: "Rio de Janeiro", countryCode: "BR", countryName: "Brazil", geocodeQuery: "Rio de Janeiro, Brazil" },
 };
 
+/** Trend / alakasız hashtag'ler — yok sayılır */
+const IGNORED_HASHTAGS = new Set([
+  "shorts",
+  "short",
+  "viral",
+  "trend",
+  "trending",
+  "fyp",
+  "foryou",
+  "foryoupage",
+  "reels",
+  "youtube",
+  "vlog",
+  "travel",
+  "gezi",
+  "seyahat",
+  "keşfet",
+  "kesfet",
+  "video",
+  "blog",
+]);
+
 const TITLE_COUNTRY_PATTERNS = [
-  /^([A-ZÇĞİÖŞÜ]+)'A\s+GELD/i,
-  /^([A-ZÇĞİÖŞÜ]+)'IN\s+/i,
+  /^([A-ZÇĞİÖŞÜ]{3,})'A\s+GELD/i,
+  /^([A-ZÇĞİÖŞÜ]{3,})'[A-ZÇĞİÖŞÜ]*\s+(GELD|GID)/i,
+  /^([A-ZÇĞİÖŞÜ]{3,})'IN\s+/i,
+  /^([A-ZÇĞİÖŞÜ]{3,})'[TD]A\b/i,
+  /^([A-ZÇĞİÖŞÜ]{3,})'[TD]E\b/i,
   /^([A-ZÇĞİÖŞÜ]{4,})\s*[:|]/,
 ];
 
@@ -350,7 +345,7 @@ function parseTitleCountry(title: string) {
     const match = title.match(pattern);
     if (!match?.[1]) continue;
     const country = resolveCountry(match[1]);
-    if (country) return { ...country, confidence: 0.85 };
+    if (country) return { ...country, confidence: 0.95 };
   }
   return null;
 }
@@ -365,11 +360,61 @@ function dedupePlaces(places: PlaceEntry[]): PlaceEntry[] {
   });
 }
 
-export function parseLocationsFromVideo(title: string, description = ""): PlaceEntry[] {
-  const combined = `${title}\n${description}`;
-  const places: PlaceEntry[] = [];
+function matchesAnchor(countryCode: string, anchorCode: string | null): boolean {
+  return !anchorCode || countryCode === anchorCode;
+}
 
+function addCityFromTag(
+  places: PlaceEntry[],
+  tag: string,
+  anchorCode: string | null,
+  confidence: number,
+) {
+  if (IGNORED_HASHTAGS.has(tag)) return;
+  const city = resolveCity(tag);
+  if (!city || !matchesAnchor(city.countryCode, anchorCode)) return;
+
+  places.push({
+    type: "city",
+    countryCode: city.countryCode,
+    countryName: city.countryName,
+    city: city.city,
+    geocodeQuery: city.geocodeQuery,
+    confidence,
+  });
+}
+
+function addCountryFromTag(
+  places: PlaceEntry[],
+  tag: string,
+  anchorCode: string | null,
+  confidence: number,
+) {
+  if (IGNORED_HASHTAGS.has(tag)) return;
+  const country = resolveCountry(tag);
+  if (!country || !matchesAnchor(country.code, anchorCode)) return;
+
+  places.push({
+    type: "country",
+    countryCode: country.code,
+    countryName: country.name,
+    geocodeQuery: country.name,
+    confidence,
+  });
+}
+
+/**
+ * Sıkı parser:
+ * 1. Başlıktaki ülke kalıbı ana referans (FAS'A GELDİM, FAS'IN ...)
+ * 2. Hashtag'ler yalnızca başlıkta veya açıklamanın İLK 3 satırında
+ * 3. Açıklama hashtag'leri sadece ana ülke ile eşleşirse kabul
+ * 4. Trend hashtag'ler yok sayılır
+ */
+export function parseLocationsFromVideo(title: string, description = ""): PlaceEntry[] {
+  const places: PlaceEntry[] = [];
   const titleCountry = parseTitleCountry(title);
+  const anchorCode = titleCountry?.code ?? null;
+
   if (titleCountry) {
     places.push({
       type: "country",
@@ -380,46 +425,36 @@ export function parseLocationsFromVideo(title: string, description = ""): PlaceE
     });
   }
 
-  for (const tag of extractHashtags(combined)) {
-    const city = resolveCity(tag);
-    if (city) {
-      places.push({
-        type: "city",
-        countryCode: city.countryCode,
-        countryName: city.countryName,
-        city: city.city,
-        geocodeQuery: city.geocodeQuery,
-        confidence: 0.95,
-      });
-      continue;
-    }
-
-    const country = resolveCountry(tag);
-    if (country) {
-      places.push({
-        type: "country",
-        countryCode: country.code,
-        countryName: country.name,
-        geocodeQuery: country.name,
-        confidence: 0.9,
-      });
-    }
+  // Başlık hashtag'leri — yüksek güven
+  for (const tag of extractHashtags(title)) {
+    addCityFromTag(places, tag, anchorCode, 0.92);
+    addCountryFromTag(places, tag, anchorCode, anchorCode ? 0.9 : 0.88);
   }
 
+  // Başlıktaki BÜYÜK HARF şehir adları
   for (const word of title.split(/\s+/)) {
     const cleaned = word.replace(/[^A-ZÇĞİÖŞÜa-zçğıöşü]/g, "");
     const city = resolveCity(cleaned);
-    if (city) {
+    if (city && matchesAnchor(city.countryCode, anchorCode)) {
       places.push({
         type: "city",
         countryCode: city.countryCode,
         countryName: city.countryName,
         city: city.city,
         geocodeQuery: city.geocodeQuery,
-        confidence: 0.8,
+        confidence: 0.88,
       });
     }
   }
 
-  return dedupePlaces(places);
+  // Açıklama: sadece ilk 3 satı + ana ülke ile uyumlu hashtag'ler
+  if (anchorCode) {
+    const descHead = description.split("\n").slice(0, 3).join("\n");
+    for (const tag of extractHashtags(descHead)) {
+      addCityFromTag(places, tag, anchorCode, 0.9);
+      addCountryFromTag(places, tag, anchorCode, 0.88);
+    }
+  }
+
+  return dedupePlaces(places).filter((p) => p.confidence >= MIN_LOCATION_CONFIDENCE);
 }
