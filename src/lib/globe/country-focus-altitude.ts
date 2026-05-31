@@ -20,11 +20,41 @@ const SMALL = new Set([
 
 const TINY = new Set(["MC", "VA", "SM", "AD", "LI", "MV", "BH", "SG", "MT"]);
 
-export function getCountryFocusAltitude(countryCode: string): number {
+type CountrySize = "extraLarge" | "large" | "medium" | "small" | "tiny";
+
+function getCountrySize(countryCode: string): CountrySize {
   const code = countryCode.toUpperCase();
-  if (EXTRA_LARGE.has(code)) return 0.95;
-  if (LARGE.has(code)) return 0.62;
-  if (TINY.has(code)) return 0.26;
-  if (SMALL.has(code)) return 0.38;
-  return 0.48;
+  if (EXTRA_LARGE.has(code)) return "extraLarge";
+  if (LARGE.has(code)) return "large";
+  if (TINY.has(code)) return "tiny";
+  if (SMALL.has(code)) return "small";
+  return "medium";
+}
+
+/** Liste / panelden seçim — ülke sınırlarına çok yakın */
+const LIST_ALTITUDE: Record<CountrySize, number> = {
+  extraLarge: 0.38,
+  large: 0.22,
+  medium: 0.16,
+  small: 0.12,
+  tiny: 0.09,
+};
+
+/** Haritadaki bayrağa tıklama — orta yakınlık */
+const GLOBE_ALTITUDE: Record<CountrySize, number> = {
+  extraLarge: 0.95,
+  large: 0.62,
+  medium: 0.48,
+  small: 0.38,
+  tiny: 0.26,
+};
+
+export type FocusZoomSource = "list" | "globe";
+
+export function getCountryFocusAltitude(
+  countryCode: string,
+  source: FocusZoomSource = "globe",
+): number {
+  const size = getCountrySize(countryCode);
+  return source === "list" ? LIST_ALTITUDE[size] : GLOBE_ALTITUDE[size];
 }

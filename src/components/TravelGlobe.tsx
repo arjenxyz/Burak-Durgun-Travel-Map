@@ -11,7 +11,7 @@ import {
   createCountryFlagObject,
 } from "@/lib/globe/country-flag-object";
 import { type GlobeCountryMarker } from "@/lib/globe/country-flag-marker";
-import { getCountryFocusAltitude } from "@/lib/globe/country-focus-altitude";
+import { getCountryFocusAltitude, type FocusZoomSource } from "@/lib/globe/country-focus-altitude";
 
 type MapData = {
   stats: MapStats;
@@ -48,14 +48,14 @@ export default function TravelGlobe() {
       .finally(() => setLoading(false));
   }, []);
 
-  function focusOnCountry(country: MapCountry) {
+  function focusOnCountry(country: MapCountry, source: FocusZoomSource = "list") {
     const globe = globeRef.current;
     if (!globe) return;
     globe.pointOfView(
       {
         lat: country.lat,
         lng: country.lng,
-        altitude: getCountryFocusAltitude(country.country_code),
+        altitude: getCountryFocusAltitude(country.country_code, source),
       },
       FOCUS_ANIMATION_MS,
     );
@@ -63,7 +63,7 @@ export default function TravelGlobe() {
 
   function selectCountry(country: MapCountry) {
     setSelection(country);
-    focusOnCountry(country);
+    focusOnCountry(country, "list");
   }
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function TravelGlobe() {
               {
                 lat: country.lat,
                 lng: country.lng,
-                altitude: getCountryFocusAltitude(country.country_code),
+                altitude: getCountryFocusAltitude(country.country_code, "globe"),
               },
               FOCUS_ANIMATION_MS,
             );
