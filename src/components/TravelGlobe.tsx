@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MapCity, MapCountry, MapStats } from "@/lib/supabase/client";
 import type { GlobeInstance } from "globe.gl";
 import CountryList from "@/components/CountryList";
+import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
 
 type MapData = {
@@ -39,10 +40,13 @@ export default function TravelGlobe() {
   const globeRef = useRef<GlobeInstance | null>(null);
   const [data, setData] = useState<MapData | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [countrySheetOpen, setCountrySheetOpen] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globeError, setGlobeError] = useState<string | null>(null);
+
+  const panelOpen = selection !== null || countrySheetOpen;
 
   useEffect(() => {
     fetch("/api/map")
@@ -61,7 +65,7 @@ export default function TravelGlobe() {
     if (controls) controls.autoRotate = autoRotate;
   }, [autoRotate]);
 
-  function focusOnPoint(point: GlobePoint) {
+  function focusOnPoint(point: Pick<GlobePoint, "lat" | "lng">) {
     const globe = globeRef.current;
     if (!globe) return;
     globe.controls().autoRotate = false;
@@ -77,7 +81,7 @@ export default function TravelGlobe() {
     focusOnPoint({
       lat: cityRow?.lat ?? country.lat,
       lng: cityRow?.lng ?? country.lng,
-    } as GlobePoint);
+    });
   }
 
   useEffect(() => {
@@ -129,7 +133,7 @@ export default function TravelGlobe() {
           .pointLat("lat")
           .pointLng("lng")
           .pointAltitude(0.03)
-          .pointRadius((d) => (d as GlobePoint).size * 0.45)
+          .pointRadius((d) => (d as GlobePoint).size * 0.5)
           .pointColor("color")
           .pointLabel("label")
           .onPointClick((point: object) => {
@@ -149,6 +153,8 @@ export default function TravelGlobe() {
         controls.autoRotate = false;
         controls.enableZoom = true;
         controls.rotateSpeed = 0.35;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
         globeRef.current = globe;
 
         const stopRotate = () => {
@@ -202,7 +208,7 @@ export default function TravelGlobe() {
       <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-red-400">{error}</p>
         <p className="max-w-md text-sm text-zinc-500">
-          Vercel env değişkenlerini ve Supabase migration SQL dosyasını kontrol edin.
+          Bağlantını ve Supabase ayarlarını kontrol edin.
         </p>
       </div>
     );
@@ -211,8 +217,8 @@ export default function TravelGlobe() {
   const isEmpty = (data?.stats.totalCountries ?? 0) === 0;
 
   return (
-    <div className="relative h-full w-full min-h-[400px]">
-      <div ref={containerRef} className="absolute inset-0" />
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="absolute inset-0 touch-none" />
 
       {globeError && (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
@@ -220,20 +226,25 @@ export default function TravelGlobe() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-zinc-950/40" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-zinc-950/50" />
 
-      <header className="absolute left-0 right-0 top-0 z-10 p-6">
-        <div className="mx-auto flex max-w-6xl items-start justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-orange-400">Burak Durgun</p>
-            <h1 className="mt-1 text-2xl font-semibold text-white md:text-3xl">Seyahat Haritası</h1>
-            <p className="mt-2 max-w-xl text-sm text-zinc-300">
-              Başlık odaklı konum tespiti — trend hashtag&apos;ler filtrelenir
+      {/* Header — compact on mobile */}
+      <header className="absolute left-0 right-0 top-0 z-10 px-3 pt-2 md:p-6">
+        <div className="mx-auto flex max-w-6xl items-start justify-between gap-2 md:gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs md:tracking-[0.2em]">
+              Burak Durgun
+            </p>
+            <h1 className="truncate text-lg font-semibold text-white md:text-3xl">
+              Seyahat Haritası
+            </h1>
+            <p className="mt-0.5 hidden text-sm text-zinc-300 sm:block">
+              Gezilen ülkeler ve videolar
             </p>
           </div>
 
           {data && (
-            <div className="grid grid-cols-3 gap-3 rounded-2xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-center backdrop-blur">
+            <div className="grid shrink-0 grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-zinc-950/80 px-2 py-2 text-center backdrop-blur md:gap-3 md:rounded-2xl md:px-4 md:py-3">
               <Stat label="Ülke" value={data.stats.totalCountries} />
               <Stat label="Şehir" value={data.stats.totalCities} />
               <Stat label="Video" value={data.stats.totalVideos} />
@@ -242,6 +253,7 @@ export default function TravelGlobe() {
         </div>
       </header>
 
+      {/* Desktop country list */}
       {data && data.countries.length > 0 && (
         <CountryList
           countries={data.countries}
@@ -250,7 +262,8 @@ export default function TravelGlobe() {
         />
       )}
 
-      <div className="absolute right-4 top-28 z-10 flex flex-col gap-2">
+      {/* Desktop rotate */}
+      <div className="absolute right-4 top-28 z-10 hidden md:flex md:flex-col md:gap-2">
         <button
           type="button"
           onClick={() => setAutoRotate((v) => !v)}
@@ -260,37 +273,69 @@ export default function TravelGlobe() {
         </button>
       </div>
 
+      {/* Mobile bottom toolbar */}
+      {!panelOpen && data && data.countries.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-white/10 bg-zinc-950/95 px-3 py-2 backdrop-blur-md safe-bottom md:hidden">
+          <button
+            type="button"
+            onClick={() => setCountrySheetOpen(true)}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-medium text-white active:bg-orange-400"
+          >
+            <span>🌍</span>
+            Ülkeler ({data.countries.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setAutoRotate((v) => !v)}
+            className="rounded-xl border border-white/10 px-4 py-3.5 text-sm text-zinc-200 active:bg-white/5"
+            aria-label={autoRotate ? "Döndürmeyi durdur" : "Küreyi döndür"}
+          >
+            {autoRotate ? "⏸" : "↻"}
+          </button>
+        </div>
+      )}
+
+      {data && (
+        <MobileCountrySheet
+          open={countrySheetOpen}
+          countries={data.countries}
+          selectedCode={selection?.country.country_code}
+          onClose={() => setCountrySheetOpen(false)}
+          onSelect={(country) => selectCountry(country)}
+        />
+      )}
+
       {isEmpty && (
-        <div className="absolute left-1/2 top-1/2 z-20 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-6">
-          <div className="rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-6 text-center backdrop-blur">
+        <div className="absolute left-1/2 top-1/2 z-20 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4">
+          <div className="rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
             <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
-            <p className="mt-2 text-sm text-zinc-400">
-              Sync çalıştırın veya reparse ile yeniden parse edin.
-            </p>
+            <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
           </div>
         </div>
       )}
 
       {selection && <VideoPanel selection={selection} onClose={() => setSelection(null)} />}
 
-      <div className="absolute bottom-6 right-6 z-10 rounded-xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-xs text-zinc-300 backdrop-blur">
-        <p>
-          <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Ülke
-        </p>
-        <p className="mt-1">
-          <span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> Şehir
-        </p>
-        <p className="mt-2 text-zinc-500">Sol listeden veya pin&apos;e tıkla</p>
-      </div>
+      {/* Legend — desktop only */}
+      {!selection && (
+        <div className="absolute bottom-6 right-6 z-10 hidden rounded-xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-xs text-zinc-300 backdrop-blur md:block">
+          <p>
+            <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Ülke
+          </p>
+          <p className="mt-1">
+            <span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> Şehir
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div>
-      <p className="text-lg font-semibold text-white">{value}</p>
-      <p className="text-xs text-zinc-400">{label}</p>
+    <div className="min-w-[2.5rem] md:min-w-0">
+      <p className="text-sm font-semibold text-white md:text-lg">{value}</p>
+      <p className="text-[10px] text-zinc-400 md:text-xs">{label}</p>
     </div>
   );
 }

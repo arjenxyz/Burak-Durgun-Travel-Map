@@ -12,7 +12,7 @@ export default function CountryList({ countries, selectedCode, onSelect }: Props
   if (countries.length === 0) return null;
 
   return (
-    <aside className="absolute left-4 top-28 z-10 hidden max-h-[calc(100vh-10rem)] w-56 flex-col rounded-2xl border border-white/10 bg-zinc-950/85 backdrop-blur md:flex">
+    <aside className="absolute left-4 top-28 z-10 hidden max-h-[calc(100dvh-10rem)] w-56 flex-col rounded-2xl border border-white/10 bg-zinc-950/85 backdrop-blur md:flex">
       <div className="border-b border-white/10 px-4 py-3">
         <p className="text-xs uppercase tracking-wider text-orange-400">Ülkeler</p>
         <p className="text-sm text-zinc-400">{countries.length} ülke</p>

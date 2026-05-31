@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import type { MapCountry } from "@/lib/supabase/client";
-import type { CountryVideo } from "@/lib/supabase/client";
+import type { MapCountry, CountryVideo } from "@/lib/supabase/client";
 
 type Selection = {
   country: MapCountry;
@@ -44,13 +43,17 @@ export default function VideoPanel({ selection, onClose }: Props) {
   }, [country.country_code, city]);
 
   return (
-    <aside className="absolute bottom-0 left-0 right-0 z-20 flex max-h-[55vh] flex-col border-t border-white/10 bg-zinc-950/95 backdrop-blur md:bottom-6 md:left-6 md:right-auto md:max-h-[calc(100vh-8rem)] md:w-full md:max-w-md md:rounded-2xl md:border">
-      <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4">
-        <div className="min-w-0">
+    <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[min(75dvh,640px)] flex-col border-t border-white/10 bg-zinc-950/98 backdrop-blur-md md:absolute md:bottom-6 md:left-6 md:right-auto md:max-h-[calc(100dvh-8rem)] md:w-full md:max-w-md md:rounded-2xl md:border safe-bottom">
+      <div className="flex shrink-0 items-center justify-center py-2 md:hidden">
+        <span className="h-1 w-10 rounded-full bg-zinc-600" />
+      </div>
+
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-1 md:p-4">
+        <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-wider text-orange-400">
             {city ? "Şehir" : "Ülke"}
           </p>
-          <h2 className="truncate text-lg font-semibold text-white">
+          <h2 className="truncate text-base font-semibold text-white md:text-lg">
             {city ? `${city}, ${country.country_name}` : country.country_name}
           </h2>
           <p className="mt-0.5 text-sm text-zinc-400">
@@ -60,39 +63,39 @@ export default function VideoPanel({ selection, onClose }: Props) {
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-lg px-2 py-1 text-sm text-zinc-400 hover:bg-white/5 hover:text-white"
+          className="shrink-0 rounded-lg px-3 py-2 text-sm text-zinc-400 active:bg-white/10 md:hover:bg-white/5"
           aria-label="Kapat"
         >
           ✕
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto overscroll-contain p-2 touch-scroll md:p-3">
         {error && <p className="px-2 py-4 text-center text-sm text-red-400">{error}</p>}
 
         {!error && !loading && videos.length === 0 && (
           <p className="px-2 py-8 text-center text-sm text-zinc-500">
-            Bu konum için henüz video yok. Sync çalıştırın.
+            Bu konum için henüz video yok.
           </p>
         )}
 
-        <ul className="space-y-2">
+        <ul className="space-y-1.5 md:space-y-2">
           {videos.map((video) => (
             <li key={video.id}>
               <a
                 href={video.video_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex gap-3 rounded-xl border border-transparent p-2 transition hover:border-white/10 hover:bg-white/5"
+                className="group flex gap-3 rounded-xl border border-transparent p-2.5 transition active:bg-white/5 md:hover:border-white/10 md:hover:bg-white/5"
               >
-                <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+                <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-800 md:h-16 md:w-28">
                   {video.thumbnail_url ? (
                     <Image
                       src={video.thumbnail_url}
                       alt=""
                       fill
-                      className="object-cover transition group-hover:scale-105"
-                      sizes="112px"
+                      className="object-cover"
+                      sizes="(max-width: 768px) 96px, 112px"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-zinc-500">
@@ -100,8 +103,8 @@ export default function VideoPanel({ selection, onClose }: Props) {
                     </div>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-medium leading-snug text-white group-hover:text-orange-300">
+                <div className="min-w-0 flex-1 py-0.5">
+                  <p className="line-clamp-2 text-sm font-medium leading-snug text-white group-active:text-orange-300 md:group-hover:text-orange-300">
                     {video.title}
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
@@ -124,7 +127,7 @@ function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString("tr-TR", {
       day: "numeric",
-      month: "long",
+      month: "short",
       year: "numeric",
     });
   } catch {
