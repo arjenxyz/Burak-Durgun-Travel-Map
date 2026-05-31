@@ -13,6 +13,17 @@ type PlaylistResponse = {
   nextPageToken?: string;
 };
 
+async function youtubeError(label: string, res: Response): Promise<never> {
+  let detail = "";
+  try {
+    const body = (await res.json()) as { error?: { message?: string; reason?: string } };
+    detail = body.error?.message ?? body.error?.reason ?? JSON.stringify(body);
+  } catch {
+    detail = await res.text().catch(() => "");
+  }
+  throw new Error(`${label} failed: HTTP ${res.status}${detail ? ` — ${detail}` : ""}`);
+}
+
 async function getUploadsPlaylistId(apiKey: string, channelId: string): Promise<string> {
   const url = new URL("https://www.googleapis.com/youtube/v3/channels");
   url.searchParams.set("part", "contentDetails");
@@ -20,7 +31,7 @@ async function getUploadsPlaylistId(apiKey: string, channelId: string): Promise<
   url.searchParams.set("key", apiKey);
 
   const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`YouTube channels.list failed: ${res.status}`);
+  if (!res.ok) await youtubeError("YouTube channels.list", res);
   const data = (await res.json()) as {
     items?: Array<{ contentDetails?: { relatedPlaylists?: { uploads?: string } } }>;
   };
@@ -46,7 +57,7 @@ export async function fetchAllVideosFromApi(
     if (pageToken) url.searchParams.set("pageToken", pageToken);
 
     const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`YouTube playlistItems.list failed: ${res.status}`);
+    if (!res.ok) await youtubeError("YouTube playlistItems.list", res);
     const data = (await res.json()) as PlaylistResponse;
 
     for (const item of data.items ?? []) {

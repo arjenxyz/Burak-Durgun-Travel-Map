@@ -25,7 +25,14 @@ async function fetchVideos(
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
 
   if (mode === "full" && apiKey) {
-    return { videos: await fetchAllVideosFromApi(apiKey, channelId), source: "api" };
+    try {
+      return { videos: await fetchAllVideosFromApi(apiKey, channelId), source: "api" };
+    } catch (error) {
+      console.warn(
+        "[sync] YouTube API failed, falling back to RSS:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   return { videos: await fetchVideosFromRss(channelId), source: "rss" };
