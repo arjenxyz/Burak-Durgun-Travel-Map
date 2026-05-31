@@ -26,11 +26,36 @@ export async function GET() {
   };
 
   checks.youtube_api_key = {
-    ok: true,
+    ok: Boolean(process.env.YOUTUBE_API_KEY?.trim()),
     detail: process.env.YOUTUBE_API_KEY?.trim()
-      ? "set — tüm kanal geçmişi sync edilir (parse batch halinde)"
-      : "not set — yalnızca RSS (son 15 video)",
+      ? "set"
+      : "eksik — yalnızca RSS (15 video). Vercel env'e YOUTUBE_API_KEY ekleyin",
   };
+
+  if (process.env.YOUTUBE_API_KEY?.trim()) {
+    try {
+      const channelId = process.env.YOUTUBE_CHANNEL_ID ?? "UCfIOM2FhhCPc8ap9T_NoMjQ";
+      const url = new URL("https://www.googleapis.com/youtube/v3/channels");
+      url.searchParams.set("part", "id");
+      url.searchParams.set("id", channelId);
+      url.searchParams.set("key", process.env.YOUTUBE_API_KEY.trim());
+      const res = await fetch(url.toString());
+      if (res.ok) {
+        checks.youtube_api_test = { ok: true, detail: "YouTube API çalışıyor" };
+      } else {
+        const body = await res.text();
+        checks.youtube_api_test = {
+          ok: false,
+          detail: `HTTP ${res.status} — ${body.slice(0, 120)}`,
+        };
+      }
+    } catch (error) {
+      checks.youtube_api_test = {
+        ok: false,
+        detail: error instanceof Error ? error.message : "API test failed",
+      };
+    }
+  }
 
   let supabaseOk = false;
   let supabaseDetail = "not tested";

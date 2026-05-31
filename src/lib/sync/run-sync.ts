@@ -13,31 +13,51 @@ export type SyncResult = {
   locationsAdded: number;
   locationsSkipped: number;
   source: "api" | "rss";
+  youtubeApiKeyConfigured: boolean;
+  sourceReason?: string;
 };
 
 export type SyncOptions = {
-  /** full = parse all unparsed. cron = parse batch only (metadata always full when API key set). */
   mode?: "cron" | "full";
   parseLimit?: number;
 };
 
 const UPSERT_CHUNK = 100;
 
-async function fetchAllVideos(channelId: string): Promise<{ videos: YouTubeVideoItem[]; source: "api" | "rss" }> {
+async function fetchAllVideos(channelId: string): Promise<{
+  videos: YouTubeVideoItem[];
+  source: "api" | "rss";
+  youtubeApiKeyConfigured: boolean;
+  sourceReason?: string;
+}> {
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
 
   if (apiKey) {
     try {
-      return { videos: await fetchAllVideosFromApi(apiKey, channelId), source: "api" };
+      return {
+        videos: await fetchAllVideosFromApi(apiKey, channelId),
+        source: "api",
+        youtubeApiKeyConfigured: true,
+      };
     } catch (error) {
-      console.warn(
-        "[sync] YouTube API failed, falling back to RSS:",
-        error instanceof Error ? error.message : error,
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("[sync] YouTube API failed, falling back to RSS:", message);
+      return {
+        videos: await fetchVideosFromRss(channelId),
+        source: "rss",
+        youtubeApiKeyConfigured: true,
+        sourceReason: `YouTube API hatası — RSS kullanıldı: ${message}`,
+      };
     }
   }
 
-  return { videos: await fetchVideosFromRss(channelId), source: "rss" };
+  return {
+    videos: await fetchVideosFromRss(channelId),
+    source: "rss",
+    youtubeApiKeyConfigured: false,
+    sourceReason:
+      "YOUTUBE_API_KEY Vercel env'de tanımlı değil — yalnızca son 15 video (RSS) çekildi",
+  };
 }
 
 function formatSupabaseError(error: { message?: string; code?: string; details?: string }): string {
@@ -142,10 +162,14 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
   let locationsAdded = 0;
   let locationsSkipped = 0;
   let source: "api" | "rss" = "rss";
+  let youtubeApiKeyConfigured = false;
+  let sourceReason: string | undefined;
 
   try {
     const fetched = await fetchAllVideos(channelId);
     source = fetched.source;
+    youtubeApiKeyConfigured = fetched.youtubeApiKeyConfigured;
+    sourceReason = fetched.sourceReason;
     videosFetched = fetched.videos.length;
 
     const { data: existingVideos, error: existingError } = await supabase
@@ -203,6 +227,8 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
       locationsAdded,
       locationsSkipped,
       source,
+      youtubeApiKeyConfigured,
+      sourceReason,
     };
   } catch (error) {
     await supabase

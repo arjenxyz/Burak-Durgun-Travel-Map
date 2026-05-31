@@ -27,9 +27,12 @@ export async function GET(request: NextRequest) {
       mode: "cron",
       ...result,
       hint:
-        result.videosPendingParse > 0
-          ? `${result.videosPendingParse} video parse bekliyor — cron tekrar çalıştıkça tamamlanır veya npm run sync kullanın`
-          : "Tüm videolar işlendi",
+        result.source === "rss"
+          ? (result.sourceReason ??
+            "RSS kullanıldı — Vercel'e YOUTUBE_API_KEY ekleyip redeploy edin")
+          : result.videosPendingParse > 0
+            ? `${result.videosPendingParse} video parse bekliyor — sync'i tekrar çalıştırın`
+            : "Tüm videolar işlendi",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync failed";
