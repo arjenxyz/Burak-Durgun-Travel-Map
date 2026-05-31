@@ -43,7 +43,7 @@ export default function CountryList({
             <button
               type="button"
               onClick={() => onSelect(country)}
-              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition active:scale-[0.99] ${
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition active:scale-[0.99] md:py-3 md:text-[15px] ${
                 selectedCode === country.country_code
                   ? "bg-orange-500/20 text-orange-200 ring-1 ring-orange-500/30"
                   : "text-zinc-200 hover:bg-white/5 active:bg-white/5"

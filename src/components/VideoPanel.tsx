@@ -36,7 +36,7 @@ export default function VideoPanel({ country, onClose, variant = "sheet" }: Prop
     <aside
       className={
         isSidebar
-          ? "flex h-full min-h-0 w-full flex-col bg-zinc-950/40"
+          ? "flex h-full min-h-0 w-full flex-col"
           : "fixed inset-x-0 bottom-0 z-40 flex max-h-[min(75dvh,640px)] flex-col border-t border-white/10 bg-zinc-950/98 backdrop-blur-md safe-bottom"
       }
     >

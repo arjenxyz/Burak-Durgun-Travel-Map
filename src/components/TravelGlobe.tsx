@@ -175,7 +175,7 @@ export default function TravelGlobe() {
     const observer = new ResizeObserver(resizeGlobe);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [data, selection, countryListOpen]);
+  }, [data]);
 
   if (loading) {
     return (
@@ -197,30 +197,31 @@ export default function TravelGlobe() {
   }
 
   const isEmpty = (data?.stats.totalCountries ?? 0) === 0;
+  const listOpen = countryListOpen || countrySheetOpen;
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="relative z-20 shrink-0 border-b border-white/5 bg-zinc-950/70 px-3 py-3 backdrop-blur-md md:px-5">
-        <div className="flex items-center justify-between gap-3">
+    <div className="relative flex h-full flex-col md:block">
+      <header className="relative z-20 shrink-0 border-b border-white/5 bg-zinc-950/70 px-3 py-3 backdrop-blur-md md:absolute md:inset-x-0 md:top-0 md:border-b-0 md:bg-gradient-to-b md:from-zinc-950/90 md:via-zinc-950/45 md:to-transparent md:px-8 md:py-6 md:backdrop-blur-none">
+        <div className="flex items-center justify-between gap-3 md:mx-auto md:max-w-[1600px]">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-semibold text-white md:text-2xl">
+            <h1 className="truncate text-lg font-semibold text-white md:text-3xl md:tracking-tight lg:text-4xl">
               Seyahat Haritası
             </h1>
             <a
               href={YOUTUBE_CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-0.5 inline-flex items-center gap-1.5 transition hover:opacity-90 active:scale-[0.99]"
+              className="mt-0.5 inline-flex items-center gap-1.5 transition hover:opacity-90 active:scale-[0.99] md:mt-1.5 md:gap-2"
               aria-label="Burak Durgun YouTube kanalı"
             >
               <span className="shrink-0 text-red-500">
-                <YoutubeIcon />
+                <YoutubeIcon size={18} />
               </span>
-              <span className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs">
+              <span className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs md:tracking-[0.2em]">
                 Burak Durgun
               </span>
             </a>
-            <p className="mt-0.5 hidden text-sm text-zinc-400 sm:block">
+            <p className="mt-0.5 hidden text-sm text-zinc-400 sm:block md:mt-2 md:text-zinc-500">
               Gezilen ülkeler ve videolar
             </p>
           </div>
@@ -228,16 +229,41 @@ export default function TravelGlobe() {
           {data && data.stats.totalCountries > 0 && (
             <CountryCountButton
               count={data.stats.totalCountries}
-              open={countryListOpen || countrySheetOpen}
+              open={listOpen}
               onClick={toggleCountryList}
             />
           )}
         </div>
       </header>
 
-      <div className="relative flex min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1 md:absolute md:inset-0">
+        <div ref={containerRef} className="absolute inset-0 touch-none" />
+
+        {globeError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
+            <p className="text-red-400">{globeError}</p>
+          </div>
+        )}
+
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.12)_55%,rgba(9,9,11,0.45)_100%)] md:opacity-70" />
+
+        {isEmpty && (
+          <div className="absolute inset-0 flex items-center justify-center px-4">
+            <div className="max-w-md rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
+              <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
+              <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
+            </div>
+          </div>
+        )}
+
+        {!isEmpty && !selection && !listOpen && (
+          <p className="pointer-events-none absolute bottom-8 left-1/2 hidden -translate-x-1/2 rounded-full border border-white/10 bg-zinc-950/60 px-4 py-2 text-sm text-zinc-400 backdrop-blur md:block">
+            Haritadan bir ülke seç veya ülke listesini aç
+          </p>
+        )}
+
         {data && data.countries.length > 0 && countryListOpen && (
-          <div className="glass-panel hidden w-60 shrink-0 border-r border-white/10 md:flex lg:w-64">
+          <div className="floating-panel panel-enter-left absolute bottom-5 left-5 top-24 z-30 hidden w-72 overflow-hidden md:flex lg:w-80">
             <CountryList
               countries={data.countries}
               selectedCode={selection?.country_code}
@@ -248,29 +274,8 @@ export default function TravelGlobe() {
           </div>
         )}
 
-        <div className="relative min-w-0 flex-1">
-          <div ref={containerRef} className="absolute inset-0 touch-none" />
-
-          {globeError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
-              <p className="text-red-400">{globeError}</p>
-            </div>
-          )}
-
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.15)_50%,rgba(9,9,11,0.55)_100%)]" />
-
-          {isEmpty && (
-            <div className="absolute inset-0 flex items-center justify-center px-4">
-              <div className="max-w-md rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
-                <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
-                <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
-              </div>
-            </div>
-          )}
-        </div>
-
         {selection && (
-          <div className="glass-panel hidden w-80 shrink-0 border-l border-white/10 lg:w-96 md:flex">
+          <div className="floating-panel panel-enter-right absolute bottom-5 right-5 top-24 z-30 hidden w-[min(100%,22rem)] overflow-hidden md:flex lg:w-96">
             <VideoPanel
               country={selection}
               onClose={() => setSelection(null)}
@@ -314,14 +319,19 @@ function CountryCountButton({
       onClick={onClick}
       aria-expanded={open}
       aria-label={open ? "Ülke listesini kapat" : "Ülke listesini aç"}
-      className={`shrink-0 rounded-xl border px-3 py-2 text-center backdrop-blur transition ${
+      className={`shrink-0 rounded-xl border text-center backdrop-blur transition md:flex md:items-center md:gap-2.5 md:rounded-2xl md:px-4 md:py-2.5 ${
         open
           ? "border-orange-500/40 bg-orange-500/15"
           : "border-white/10 bg-zinc-900/60 hover:border-white/20 hover:bg-zinc-900/80"
       }`}
     >
-      <p className="text-base font-semibold tabular-nums text-white md:text-lg">{count}</p>
-      <p className="text-[10px] text-zinc-500 md:text-xs">Ülke</p>
+      <span className="hidden text-lg md:inline" aria-hidden>
+        🌍
+      </span>
+      <span className="md:text-left">
+        <p className="text-base font-semibold tabular-nums text-white md:text-xl">{count}</p>
+        <p className="text-[10px] text-zinc-500 md:text-xs">{open ? "Listeyi kapat" : "Ülke"}</p>
+      </span>
     </button>
   );
 }
