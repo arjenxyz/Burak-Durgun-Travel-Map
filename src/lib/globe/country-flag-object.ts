@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { countryFlagUrl } from "@/lib/country-flag-url";
 
-/** Küre yarıçapına göre (~100) eski nokta boyutuna yakın küçük bayrak */
-const FLAG_WIDTH = 1.5;
-const FLAG_HEIGHT = 1;
+/** Küre yarıçapına göre (~100) okunabilir bayrak boyutu */
+const FLAG_WIDTH = 2.6;
+const FLAG_HEIGHT = 1.75;
 
 const textureLoader = new THREE.TextureLoader();
 const textureCache = new Map<string, THREE.Texture>();
@@ -13,7 +13,7 @@ function getCountryFlagTexture(countryCode: string): THREE.Texture {
   const key = countryCode.toLowerCase();
   let texture = textureCache.get(key);
   if (!texture) {
-    texture = textureLoader.load(countryFlagUrl(key, 40));
+    texture = textureLoader.load(countryFlagUrl(key, 80));
     texture.colorSpace = THREE.SRGBColorSpace;
     textureCache.set(key, texture);
   }

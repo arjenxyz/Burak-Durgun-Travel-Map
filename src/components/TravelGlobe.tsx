@@ -11,6 +11,7 @@ import {
   createCountryFlagObject,
 } from "@/lib/globe/country-flag-object";
 import { type GlobeCountryMarker } from "@/lib/globe/country-flag-marker";
+import { getCountryFocusAltitude } from "@/lib/globe/country-focus-altitude";
 
 type MapData = {
   stats: MapStats;
@@ -22,6 +23,8 @@ const TEXTURES = {
   bump: "https://unpkg.com/three-globe/example/img/earth-topology.png",
   background: "https://unpkg.com/three-globe/example/img/night-sky.png",
 };
+
+const FOCUS_ANIMATION_MS = 900;
 
 export default function TravelGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +51,14 @@ export default function TravelGlobe() {
   function focusOnCountry(country: MapCountry) {
     const globe = globeRef.current;
     if (!globe) return;
-    globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
+    globe.pointOfView(
+      {
+        lat: country.lat,
+        lng: country.lng,
+        altitude: getCountryFocusAltitude(country.country_code),
+      },
+      FOCUS_ANIMATION_MS,
+    );
   }
 
   function selectCountry(country: MapCountry) {
@@ -98,7 +108,14 @@ export default function TravelGlobe() {
             const marker = obj as GlobeCountryMarker;
             const country = data!.countries.find((c) => c.country_code === marker.countryCode);
             if (!country) return;
-            globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
+            globe.pointOfView(
+              {
+                lat: country.lat,
+                lng: country.lng,
+                altitude: getCountryFocusAltitude(country.country_code),
+              },
+              FOCUS_ANIMATION_MS,
+            );
             setSelection(country);
           })
           .width(container.clientWidth)
