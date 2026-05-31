@@ -112,3 +112,167 @@ body {
     user-select: auto;
   }
 }
+
+/* Welcome modal */
+@keyframes welcome-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes welcome-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes welcome-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes welcome-modal-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+@keyframes welcome-route-draw {
+  from {
+    stroke-dashoffset: 120;
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0.55;
+  }
+}
+
+@keyframes welcome-pin-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes welcome-pin-ring {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes welcome-globe-float {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-4px);
+  }
+}
+
+@keyframes welcome-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.welcome-overlay-in {
+  animation: welcome-overlay-in 0.35s ease-out forwards;
+}
+
+.welcome-overlay-out {
+  animation: welcome-overlay-out 0.28s ease-in forwards;
+}
+
+.welcome-modal-in {
+  animation: welcome-modal-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.welcome-modal-out {
+  animation: welcome-modal-out 0.28s ease-in forwards;
+}
+
+.welcome-globe-sphere {
+  animation: welcome-globe-float 5s ease-in-out infinite;
+}
+
+.welcome-route {
+  stroke: #f97316;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 120;
+  animation: welcome-route-draw 1.4s ease-out forwards;
+}
+
+.welcome-pin {
+  fill: #f97316;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: welcome-pin-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.welcome-pin-ring {
+  fill: #f97316;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: welcome-pin-ring 2.4s ease-in-out infinite;
+}
+
+.welcome-step {
+  animation: welcome-step-in 0.5s ease-out backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-overlay-in,
+  .welcome-overlay-out,
+  .welcome-modal-in,
+  .welcome-modal-out,
+  .welcome-globe-sphere,
+  .welcome-route,
+  .welcome-pin,
+  .welcome-pin-ring,
+  .welcome-step {
+    animation: none;
+  }
+
+  .welcome-route {
+    stroke-dashoffset: 0;
+    opacity: 0.55;
+  }
+}
