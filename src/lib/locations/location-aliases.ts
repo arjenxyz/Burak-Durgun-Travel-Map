@@ -1,3 +1,5 @@
+import { CITY_ALIASES_DATA, cityKeysByCountry } from "./city-aliases-data";
+
 export type PlaceEntry = {
   type: "country" | "city";
   countryCode: string;
@@ -9,6 +11,8 @@ export type PlaceEntry = {
 
 /** Kaydedilecek minimum güven — altındakiler atılır */
 export const MIN_LOCATION_CONFIDENCE = 0.85;
+
+export const CITY_ALIASES = CITY_ALIASES_DATA;
 
 /** Sadece gerçek ülke adları — şehir adları burada OLMAMALI */
 export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
@@ -162,132 +166,6 @@ export const COUNTRY_ALIASES: Record<string, { code: string; name: string }> = {
   australia: { code: "AU", name: "Australia" },
 };
 
-export const CITY_ALIASES: Record<
-  string,
-  { city: string; countryCode: string; countryName: string; geocodeQuery: string }
-> = {
-  fes: { city: "Fes", countryCode: "MA", countryName: "Morocco", geocodeQuery: "Fes, Morocco" },
-  fez: { city: "Fes", countryCode: "MA", countryName: "Morocco", geocodeQuery: "Fes, Morocco" },
-  marakesh: {
-    city: "Marrakech",
-    countryCode: "MA",
-    countryName: "Morocco",
-    geocodeQuery: "Marrakech, Morocco",
-  },
-  marrakech: {
-    city: "Marrakech",
-    countryCode: "MA",
-    countryName: "Morocco",
-    geocodeQuery: "Marrakech, Morocco",
-  },
-  kazablanka: {
-    city: "Casablanca",
-    countryCode: "MA",
-    countryName: "Morocco",
-    geocodeQuery: "Casablanca, Morocco",
-  },
-  casablanca: {
-    city: "Casablanca",
-    countryCode: "MA",
-    countryName: "Morocco",
-    geocodeQuery: "Casablanca, Morocco",
-  },
-  sevilla: {
-    city: "Seville",
-    countryCode: "ES",
-    countryName: "Spain",
-    geocodeQuery: "Seville, Spain",
-  },
-  seville: {
-    city: "Seville",
-    countryCode: "ES",
-    countryName: "Spain",
-    geocodeQuery: "Seville, Spain",
-  },
-  barselona: {
-    city: "Barcelona",
-    countryCode: "ES",
-    countryName: "Spain",
-    geocodeQuery: "Barcelona, Spain",
-  },
-  barcelona: {
-    city: "Barcelona",
-    countryCode: "ES",
-    countryName: "Spain",
-    geocodeQuery: "Barcelona, Spain",
-  },
-  madrid: { city: "Madrid", countryCode: "ES", countryName: "Spain", geocodeQuery: "Madrid, Spain" },
-  tokyo: { city: "Tokyo", countryCode: "JP", countryName: "Japan", geocodeQuery: "Tokyo, Japan" },
-  bangkok: {
-    city: "Bangkok",
-    countryCode: "TH",
-    countryName: "Thailand",
-    geocodeQuery: "Bangkok, Thailand",
-  },
-  bali: { city: "Denpasar", countryCode: "ID", countryName: "Indonesia", geocodeQuery: "Bali, Indonesia" },
-  dubai: {
-    city: "Dubai",
-    countryCode: "AE",
-    countryName: "United Arab Emirates",
-    geocodeQuery: "Dubai, UAE",
-  },
-  istanbul: {
-    city: "Istanbul",
-    countryCode: "TR",
-    countryName: "Turkey",
-    geocodeQuery: "Istanbul, Turkey",
-  },
-  izmir: { city: "Izmir", countryCode: "TR", countryName: "Turkey", geocodeQuery: "Izmir, Turkey" },
-  tbilisi: {
-    city: "Tbilisi",
-    countryCode: "GE",
-    countryName: "Georgia",
-    geocodeQuery: "Tbilisi, Georgia",
-  },
-  baku: { city: "Baku", countryCode: "AZ", countryName: "Azerbaijan", geocodeQuery: "Baku, Azerbaijan" },
-  taskent: {
-    city: "Tashkent",
-    countryCode: "UZ",
-    countryName: "Uzbekistan",
-    geocodeQuery: "Tashkent, Uzbekistan",
-  },
-  kahire: { city: "Cairo", countryCode: "EG", countryName: "Egypt", geocodeQuery: "Cairo, Egypt" },
-  cairo: { city: "Cairo", countryCode: "EG", countryName: "Egypt", geocodeQuery: "Cairo, Egypt" },
-  paris: { city: "Paris", countryCode: "FR", countryName: "France", geocodeQuery: "Paris, France" },
-  londra: {
-    city: "London",
-    countryCode: "GB",
-    countryName: "United Kingdom",
-    geocodeQuery: "London, UK",
-  },
-  london: {
-    city: "London",
-    countryCode: "GB",
-    countryName: "United Kingdom",
-    geocodeQuery: "London, UK",
-  },
-  berlin: { city: "Berlin", countryCode: "DE", countryName: "Germany", geocodeQuery: "Berlin, Germany" },
-  budapest: {
-    city: "Budapest",
-    countryCode: "HU",
-    countryName: "Hungary",
-    geocodeQuery: "Budapest, Hungary",
-  },
-  belgrad: {
-    city: "Belgrade",
-    countryCode: "RS",
-    countryName: "Serbia",
-    geocodeQuery: "Belgrade, Serbia",
-  },
-  beirut: {
-    city: "Beirut",
-    countryCode: "LB",
-    countryName: "Lebanon",
-    geocodeQuery: "Beirut, Lebanon",
-  },
-  rio: { city: "Rio de Janeiro", countryCode: "BR", countryName: "Brazil", geocodeQuery: "Rio de Janeiro, Brazil" },
-};
-
 /** Trend / alakasız hashtag'ler — yok sayılır */
 const IGNORED_HASHTAGS = new Set([
   "shorts",
@@ -304,7 +182,6 @@ const IGNORED_HASHTAGS = new Set([
   "travel",
   "gezi",
   "seyahat",
-  "keşfet",
   "kesfet",
   "video",
   "blog",
@@ -318,6 +195,16 @@ const TITLE_COUNTRY_PATTERNS = [
   /^([A-ZÇĞİÖŞÜ]{3,})'[TD]E\b/i,
   /^([A-ZÇĞİÖŞÜ]{4,})\s*[:|]/,
 ];
+
+/** Başlıktaki şehir kalıpları — FES'TE, ANTALYA'YA GELDİM */
+const TITLE_CITY_PATTERNS = [
+  /^([A-ZÇĞİÖŞÜ]{3,})'[TD][AE]\b/i,
+  /^([A-ZÇĞİÖŞÜ]{3,})'YA\s+GELD/i,
+  /^([A-ZÇĞİÖŞÜ]{3,})'[A-ZÇĞİÖŞÜ]*\s+(GEZ|GEL|KAL|BUL|YAS)/i,
+];
+
+const CITY_KEYS_BY_COUNTRY = cityKeysByCountry();
+const MIN_CITY_KEY_LENGTH = 4;
 
 function normalizeKey(input: string): string {
   return input
@@ -340,6 +227,17 @@ function resolveCity(alias: string) {
   return CITY_ALIASES[normalizeKey(alias)] ?? null;
 }
 
+function toCityPlace(city: (typeof CITY_ALIASES)[string], confidence: number): PlaceEntry {
+  return {
+    type: "city",
+    countryCode: city.countryCode,
+    countryName: city.countryName,
+    city: city.city,
+    geocodeQuery: city.geocodeQuery,
+    confidence,
+  };
+}
+
 function parseTitleCountry(title: string) {
   for (const pattern of TITLE_COUNTRY_PATTERNS) {
     const match = title.match(pattern);
@@ -348,6 +246,41 @@ function parseTitleCountry(title: string) {
     if (country) return { ...country, confidence: 0.95 };
   }
   return null;
+}
+
+function parseTitleCityPatterns(title: string, anchorCode: string | null): PlaceEntry[] {
+  const places: PlaceEntry[] = [];
+
+  for (const pattern of TITLE_CITY_PATTERNS) {
+    const match = title.match(pattern);
+    if (!match?.[1]) continue;
+    const city = resolveCity(match[1]);
+    if (city && matchesAnchor(city.countryCode, anchorCode)) {
+      places.push(toCityPlace(city, 0.93));
+    }
+  }
+
+  return places;
+}
+
+/** Ana ülke belliyken başlıkta geçen şehir alias'larını tara */
+function findCitiesInAnchoredTitle(title: string, anchorCode: string): PlaceEntry[] {
+  const normalized = normalizeKey(title);
+  const keys = CITY_KEYS_BY_COUNTRY.get(anchorCode) ?? [];
+  const places: PlaceEntry[] = [];
+  const seenCities = new Set<string>();
+
+  for (const key of keys) {
+    if (key.length < MIN_CITY_KEY_LENGTH) continue;
+    if (!normalized.includes(key)) continue;
+
+    const city = CITY_ALIASES[key];
+    if (seenCities.has(city.city)) continue;
+    seenCities.add(city.city);
+    places.push(toCityPlace(city, 0.87));
+  }
+
+  return places;
 }
 
 function dedupePlaces(places: PlaceEntry[]): PlaceEntry[] {
@@ -374,14 +307,7 @@ function addCityFromTag(
   const city = resolveCity(tag);
   if (!city || !matchesAnchor(city.countryCode, anchorCode)) return;
 
-  places.push({
-    type: "city",
-    countryCode: city.countryCode,
-    countryName: city.countryName,
-    city: city.city,
-    geocodeQuery: city.geocodeQuery,
-    confidence,
-  });
+  places.push(toCityPlace(city, confidence));
 }
 
 function addCountryFromTag(
@@ -406,9 +332,10 @@ function addCountryFromTag(
 /**
  * Sıkı parser:
  * 1. Başlıktaki ülke kalıbı ana referans (FAS'A GELDİM, FAS'IN ...)
- * 2. Hashtag'ler yalnızca başlıkta veya açıklamanın İLK 3 satırında
- * 3. Açıklama hashtag'leri sadece ana ülke ile eşleşirse kabul
- * 4. Trend hashtag'ler yok sayılır
+ * 2. Başlıktaki şehir kalıpları + ana ülkeye bağlı şehir taraması
+ * 3. Hashtag'ler yalnızca başlıkta veya açıklamanın İLK 3 satırında
+ * 4. Açıklama hashtag'leri sadece ana ülke ile eşleşirse kabul
+ * 5. Trend hashtag'ler yok sayılır
  */
 export function parseLocationsFromVideo(title: string, description = ""): PlaceEntry[] {
   const places: PlaceEntry[] = [];
@@ -425,29 +352,25 @@ export function parseLocationsFromVideo(title: string, description = ""): PlaceE
     });
   }
 
-  // Başlık hashtag'leri — yüksek güven
+  places.push(...parseTitleCityPatterns(title, anchorCode));
+
+  if (anchorCode) {
+    places.push(...findCitiesInAnchoredTitle(title, anchorCode));
+  }
+
   for (const tag of extractHashtags(title)) {
     addCityFromTag(places, tag, anchorCode, 0.92);
     addCountryFromTag(places, tag, anchorCode, anchorCode ? 0.9 : 0.88);
   }
 
-  // Başlıktaki BÜYÜK HARF şehir adları
   for (const word of title.split(/\s+/)) {
     const cleaned = word.replace(/[^A-ZÇĞİÖŞÜa-zçğıöşü]/g, "");
     const city = resolveCity(cleaned);
     if (city && matchesAnchor(city.countryCode, anchorCode)) {
-      places.push({
-        type: "city",
-        countryCode: city.countryCode,
-        countryName: city.countryName,
-        city: city.city,
-        geocodeQuery: city.geocodeQuery,
-        confidence: 0.88,
-      });
+      places.push(toCityPlace(city, 0.88));
     }
   }
 
-  // Açıklama: sadece ilk 3 satı + ana ülke ile uyumlu hashtag'ler
   if (anchorCode) {
     const descHead = description.split("\n").slice(0, 3).join("\n");
     for (const tag of extractHashtags(descHead)) {
