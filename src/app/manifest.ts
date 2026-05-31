@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Burak Durgun — Seyahat Haritası",
     short_name: "Burak Durgun",
-    description: "Burak Durgun'un gezdiği ülkeler ve şehirler — interaktif 3D harita",
+    description: "Burak Durgun'un gezdiği ülkeler — interaktif 3D harita",
     start_url: "/",
     display: "standalone",
     background_color: "#09090b",

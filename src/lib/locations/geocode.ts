@@ -1,7 +1,5 @@
 import type { PlaceEntry } from "./location-aliases";
 
-const geocodeCache = new Map<string, { lat: number; lng: number }>();
-
 const COUNTRY_COORDS: Record<string, { lat: number; lng: number }> = {
   MA: { lat: 31.7917, lng: -7.0926 },
   ES: { lat: 40.4637, lng: -3.7492 },
@@ -59,80 +57,8 @@ const COUNTRY_COORDS: Record<string, { lat: number; lng: number }> = {
   AU: { lat: -25.2744, lng: 133.7751 },
 };
 
-const PRESET_CITY_COORDS: Record<string, { lat: number; lng: number }> = {
-  "Fes, Morocco": { lat: 34.0181, lng: -5.0078 },
-  "Marrakech, Morocco": { lat: 31.6295, lng: -7.9811 },
-  "Casablanca, Morocco": { lat: 33.5731, lng: -7.5898 },
-  "Seville, Spain": { lat: 37.3891, lng: -5.9845 },
-  "Barcelona, Spain": { lat: 41.3874, lng: 2.1686 },
-  "Madrid, Spain": { lat: 40.4168, lng: -3.7038 },
-  "Tokyo, Japan": { lat: 35.6762, lng: 139.6503 },
-  "Bangkok, Thailand": { lat: 13.7563, lng: 100.5018 },
-  "Bali, Indonesia": { lat: -8.4095, lng: 115.1889 },
-  "Dubai, UAE": { lat: 25.2048, lng: 55.2708 },
-  "Istanbul, Turkey": { lat: 41.0082, lng: 28.9784 },
-  "Tbilisi, Georgia": { lat: 41.7151, lng: 44.8271 },
-  "Baku, Azerbaijan": { lat: 40.4093, lng: 49.8671 },
-  "Tashkent, Uzbekistan": { lat: 41.2995, lng: 69.2401 },
-  "Cairo, Egypt": { lat: 30.0444, lng: 31.2357 },
-  "Paris, France": { lat: 48.8566, lng: 2.3522 },
-  "London, UK": { lat: 51.5074, lng: -0.1278 },
-  "Berlin, Germany": { lat: 52.52, lng: 13.405 },
-  "Budapest, Hungary": { lat: 47.4979, lng: 19.0402 },
-  "Belgrade, Serbia": { lat: 44.7866, lng: 20.4489 },
-  "Beirut, Lebanon": { lat: 33.8938, lng: 35.5018 },
-};
-
-let lastNominatimCall = 0;
-
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function nominatimGeocode(query: string): Promise<{ lat: number; lng: number } | null> {
-  const cached = geocodeCache.get(query);
-  if (cached) return cached;
-
-  const preset = PRESET_CITY_COORDS[query];
-  if (preset) {
-    geocodeCache.set(query, preset);
-    return preset;
-  }
-
-  const elapsed = Date.now() - lastNominatimCall;
-  if (elapsed < 1100) await sleep(1100 - elapsed);
-  lastNominatimCall = Date.now();
-
-  const url = new URL("https://nominatim.openstreetmap.org/search");
-  url.searchParams.set("q", query);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("limit", "1");
-
-  try {
-    const res = await fetch(url.toString(), {
-      headers: { "User-Agent": "BurakTravelMap/1.0 (travel-map-app)" },
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as Array<{ lat: string; lon: string }>;
-    if (!data[0]) return null;
-    const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-    geocodeCache.set(query, coords);
-    return coords;
-  } catch {
-    return null;
-  }
-}
-
 export async function geocodePlace(place: PlaceEntry): Promise<{ lat: number; lng: number } | null> {
-  if (place.type === "country") {
-    const centroid = COUNTRY_COORDS[place.countryCode];
-    if (centroid) return centroid;
-  }
-
-  const preset = PRESET_CITY_COORDS[place.geocodeQuery];
-  if (preset) return preset;
-
-  return nominatimGeocode(place.geocodeQuery);
+  return COUNTRY_COORDS[place.countryCode] ?? null;
 }
 
 export async function geocodePlaces(

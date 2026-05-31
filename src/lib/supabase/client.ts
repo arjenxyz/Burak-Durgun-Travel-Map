@@ -67,7 +67,6 @@ export type MapCity = {
 
 export type MapStats = {
   totalCountries: number;
-  totalCities: number;
   totalVideos: number;
   lastSync: string | null;
 };
@@ -79,5 +78,4 @@ export type CountryVideo = {
   thumbnail_url: string | null;
   published_at: string;
   video_url: string;
-  cities: string[];
 };

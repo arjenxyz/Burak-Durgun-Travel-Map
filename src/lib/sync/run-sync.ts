@@ -131,7 +131,7 @@ async function parseVideo(
         video_id: video.id,
         country_code: place.countryCode,
         country_name: place.countryName,
-        city: place.city ?? null,
+        city: null,
         lat: place.lat,
         lng: place.lng,
         confidence: place.confidence,
@@ -179,6 +179,8 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
     if (options.reparseAll) {
       await supabase.from("video_locations").delete().gte("confidence", 0);
       await supabase.from("videos").update({ parsed_at: null }).neq("youtube_id", "");
+    } else {
+      await supabase.from("video_locations").delete().not("city", "is", null);
     }
 
     const fetched = await fetchAllVideos(channelId);

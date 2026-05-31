@@ -4,34 +4,21 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { MapCountry, CountryVideo } from "@/lib/supabase/client";
 
-type Selection = {
-  country: MapCountry;
-  city?: string;
-};
-
 type Props = {
-  selection: Selection;
+  country: MapCountry;
   onClose: () => void;
 };
 
-export default function VideoPanel({ selection, onClose }: Props) {
+export default function VideoPanel({ country, onClose }: Props) {
   const [videos, setVideos] = useState<CountryVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const { country, city } = selection;
 
   useEffect(() => {
     setLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (city) params.set("city", city);
-
-    const query = params.toString();
-    const url = `/api/countries/${country.country_code}/videos${query ? `?${query}` : ""}`;
-
-    fetch(url)
+    fetch(`/api/countries/${country.country_code}/videos`)
       .then(async (res) => {
         const json = (await res.json()) as { videos?: CountryVideo[]; error?: string };
         if (!res.ok) throw new Error(json.error ?? "Videolar yüklenemedi");
@@ -40,7 +27,7 @@ export default function VideoPanel({ selection, onClose }: Props) {
       .then(setVideos)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [country.country_code, city]);
+  }, [country.country_code]);
 
   return (
     <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[min(75dvh,640px)] flex-col border-t border-white/10 bg-zinc-950/98 backdrop-blur-md md:absolute md:bottom-6 md:left-6 md:right-auto md:max-h-[calc(100dvh-8rem)] md:w-full md:max-w-md md:rounded-2xl md:border safe-bottom">
@@ -50,11 +37,9 @@ export default function VideoPanel({ selection, onClose }: Props) {
 
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 pb-3 pt-1 md:p-4">
         <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-wider text-orange-400">
-            {city ? "Şehir" : "Ülke"}
-          </p>
+          <p className="text-xs uppercase tracking-wider text-orange-400">Ülke</p>
           <h2 className="truncate text-base font-semibold text-white md:text-lg">
-            {city ? `${city}, ${country.country_name}` : country.country_name}
+            {country.country_name}
           </h2>
           <p className="mt-0.5 text-sm text-zinc-400">
             {loading ? "Yükleniyor..." : `${videos.length} video`}
@@ -75,7 +60,7 @@ export default function VideoPanel({ selection, onClose }: Props) {
 
         {!error && !loading && videos.length === 0 && (
           <p className="px-2 py-8 text-center text-sm text-zinc-500">
-            Bu konum için henüz video yok.
+            Bu ülke için henüz video yok.
           </p>
         )}
 
@@ -107,12 +92,7 @@ export default function VideoPanel({ selection, onClose }: Props) {
                   <p className="line-clamp-2 text-sm font-medium leading-snug text-white group-active:text-orange-300 md:group-hover:text-orange-300">
                     {video.title}
                   </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {formatDate(video.published_at)}
-                    {video.cities.length > 0 && (
-                      <span className="text-zinc-400"> · {video.cities.join(", ")}</span>
-                    )}
-                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">{formatDate(video.published_at)}</p>
                 </div>
               </a>
             </li>

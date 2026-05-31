@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Burak Durgun — Seyahat Haritası",
-  description: "Burak Durgun'un gezdiği ülkeler ve şehirler — interaktif 3D harita",
+  description: "Burak Durgun'un gezdiği ülkeler — interaktif 3D harita",
   applicationName: "Burak Durgun",
   manifest: "/manifest.webmanifest",
   icons: {

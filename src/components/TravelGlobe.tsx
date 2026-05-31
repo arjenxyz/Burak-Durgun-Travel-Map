@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { MapCity, MapCountry, MapStats } from "@/lib/supabase/client";
+import type { MapCountry, MapStats } from "@/lib/supabase/client";
 import type { GlobeInstance } from "globe.gl";
 import CountryList from "@/components/CountryList";
 import MobileCountrySheet from "@/components/MobileCountrySheet";
@@ -10,7 +10,6 @@ import VideoPanel from "@/components/VideoPanel";
 type MapData = {
   stats: MapStats;
   countries: MapCountry[];
-  cities: MapCity[];
 };
 
 type GlobePoint = {
@@ -19,14 +18,7 @@ type GlobePoint = {
   size: number;
   color: string;
   label: string;
-  type: "country" | "city";
   countryCode: string;
-  cityName?: string;
-};
-
-type Selection = {
-  country: MapCountry;
-  city?: string;
 };
 
 const TEXTURES = {
@@ -39,7 +31,7 @@ export default function TravelGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeInstance | null>(null);
   const [data, setData] = useState<MapData | null>(null);
-  const [selection, setSelection] = useState<Selection | null>(null);
+  const [selection, setSelection] = useState<MapCountry | null>(null);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -65,23 +57,17 @@ export default function TravelGlobe() {
     if (controls) controls.autoRotate = autoRotate;
   }, [autoRotate]);
 
-  function focusOnPoint(point: Pick<GlobePoint, "lat" | "lng">) {
+  function focusOnCountry(country: MapCountry) {
     const globe = globeRef.current;
     if (!globe) return;
     globe.controls().autoRotate = false;
     setAutoRotate(false);
-    globe.pointOfView({ lat: point.lat, lng: point.lng, altitude: 1.6 }, 800);
+    globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
   }
 
-  function selectCountry(country: MapCountry, city?: string) {
-    setSelection({ country, city });
-    const cityRow = city
-      ? data?.cities.find((c) => c.country_code === country.country_code && c.city === city)
-      : undefined;
-    focusOnPoint({
-      lat: cityRow?.lat ?? country.lat,
-      lng: cityRow?.lng ?? country.lng,
-    });
+  function selectCountry(country: MapCountry) {
+    setSelection(country);
+    focusOnCountry(country);
   }
 
   useEffect(() => {
@@ -99,28 +85,14 @@ export default function TravelGlobe() {
 
         container.innerHTML = "";
 
-        const countryPoints: GlobePoint[] = data!.countries.map((c) => ({
+        const points: GlobePoint[] = data!.countries.map((c) => ({
           lat: c.lat,
           lng: c.lng,
           size: 0.55 + Math.min(c.video_count * 0.1, 1.2),
           color: "#f97316",
           label: `${c.country_name} · ${c.video_count} video`,
-          type: "country" as const,
           countryCode: c.country_code,
         }));
-
-        const cityPoints: GlobePoint[] = data!.cities.map((c) => ({
-          lat: c.lat,
-          lng: c.lng,
-          size: 0.4 + Math.min(c.video_count * 0.06, 0.9),
-          color: "#38bdf8",
-          label: `${c.city}, ${c.country_name} · ${c.video_count} video`,
-          type: "city" as const,
-          countryCode: c.country_code,
-          cityName: c.city,
-        }));
-
-        const points = [...countryPoints, ...cityPoints];
 
         const globe = new Globe(container, { animateIn: true })
           .globeImageUrl(TEXTURES.globe)
@@ -140,11 +112,10 @@ export default function TravelGlobe() {
             const p = point as GlobePoint;
             const country = data!.countries.find((c) => c.country_code === p.countryCode);
             if (!country) return;
-            focusOnPoint(p);
-            setSelection({
-              country,
-              city: p.type === "city" ? p.cityName : undefined,
-            });
+            globe.controls().autoRotate = false;
+            setAutoRotate(false);
+            globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
+            setSelection(country);
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
@@ -228,7 +199,6 @@ export default function TravelGlobe() {
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-zinc-950/50" />
 
-      {/* Header — compact on mobile */}
       <header className="absolute left-0 right-0 top-0 z-10 px-3 pt-2 md:p-6">
         <div className="mx-auto flex max-w-6xl items-start justify-between gap-2 md:gap-4">
           <div className="min-w-0 flex-1">
@@ -244,27 +214,22 @@ export default function TravelGlobe() {
           </div>
 
           {data && (
-            <div className="grid shrink-0 grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-zinc-950/80 px-2 py-2 text-center backdrop-blur md:gap-3 md:rounded-2xl md:px-4 md:py-3">
+            <div className="grid shrink-0 grid-cols-2 gap-2 rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-2 text-center backdrop-blur md:gap-4 md:rounded-2xl md:px-4 md:py-3">
               <Stat label="Ülke" value={data.stats.totalCountries} />
-              <Stat label="Şehir" value={data.stats.totalCities} />
               <Stat label="Video" value={data.stats.totalVideos} />
             </div>
           )}
         </div>
       </header>
 
-      {/* Desktop country list */}
       {data && data.countries.length > 0 && (
         <CountryList
           countries={data.countries}
-          cities={data.cities}
-          selectedCountryCode={selection?.country.country_code}
-          selectedCity={selection?.city}
-          onSelect={(country, city) => selectCountry(country, city)}
+          selectedCode={selection?.country_code}
+          onSelect={selectCountry}
         />
       )}
 
-      {/* Desktop rotate */}
       <div className="absolute right-4 top-28 z-10 hidden md:flex md:flex-col md:gap-2">
         <button
           type="button"
@@ -275,7 +240,6 @@ export default function TravelGlobe() {
         </button>
       </div>
 
-      {/* Mobile bottom toolbar */}
       {!panelOpen && data && data.countries.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-white/10 bg-zinc-950/95 px-3 py-2 backdrop-blur-md safe-bottom md:hidden">
           <button
@@ -284,7 +248,7 @@ export default function TravelGlobe() {
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-medium text-white active:bg-orange-400"
           >
             <span>🌍</span>
-            Konumlar ({data.countries.length})
+            Ülkeler ({data.countries.length})
           </button>
           <button
             type="button"
@@ -301,11 +265,9 @@ export default function TravelGlobe() {
         <MobileCountrySheet
           open={countrySheetOpen}
           countries={data.countries}
-          cities={data.cities}
-          selectedCountryCode={selection?.country.country_code}
-          selectedCity={selection?.city}
+          selectedCode={selection?.country_code}
           onClose={() => setCountrySheetOpen(false)}
-          onSelect={(country, city) => selectCountry(country, city)}
+          onSelect={selectCountry}
         />
       )}
 
@@ -318,20 +280,7 @@ export default function TravelGlobe() {
         </div>
       )}
 
-      {selection && <VideoPanel selection={selection} onClose={() => setSelection(null)} />}
-
-      {/* Legend — desktop only */}
-      {!selection && (
-        <div className="absolute bottom-6 right-6 z-10 hidden rounded-xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-xs text-zinc-300 backdrop-blur md:block">
-          <p>
-            <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Ülke
-          </p>
-          <p className="mt-1">
-            <span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> Şehir
-          </p>
-          <p className="mt-2 text-zinc-500">Soldan ok ile şehirleri aç</p>
-        </div>
-      )}
+      {selection && <VideoPanel country={selection} onClose={() => setSelection(null)} />}
     </div>
   );
 }

@@ -2,20 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient, type CountryVideo } from "@/lib/supabase/client";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: Promise<{ code: string }> },
 ) {
   const { code } = await context.params;
-  const city = request.nextUrl.searchParams.get("city");
 
   try {
     const supabase = createServiceClient();
 
-    let locationQuery = supabase
+    const { data, error } = await supabase
       .from("video_locations")
       .select(
         `
-        city,
         videos (
           id,
           youtube_id,
@@ -28,11 +26,6 @@ export async function GET(
       )
       .eq("country_code", code.toUpperCase());
 
-    if (city) {
-      locationQuery = locationQuery.eq("city", city);
-    }
-
-    const { data, error } = await locationQuery;
     if (error) throw error;
 
     const byVideoId = new Map<string, CountryVideo>();
@@ -40,20 +33,8 @@ export async function GET(
     for (const row of data ?? []) {
       const video = row.videos as CountryVideo | CountryVideo[] | null;
       const videoRow = Array.isArray(video) ? video[0] : video;
-      if (!videoRow?.id) continue;
-
-      const existing = byVideoId.get(videoRow.id);
-      if (existing) {
-        if (row.city && !existing.cities.includes(row.city)) {
-          existing.cities.push(row.city);
-        }
-        continue;
-      }
-
-      byVideoId.set(videoRow.id, {
-        ...videoRow,
-        cities: row.city ? [row.city] : [],
-      });
+      if (!videoRow?.id || byVideoId.has(videoRow.id)) continue;
+      byVideoId.set(videoRow.id, videoRow);
     }
 
     const videos = [...byVideoId.values()].sort(
@@ -62,7 +43,6 @@ export async function GET(
 
     return NextResponse.json({
       countryCode: code.toUpperCase(),
-      city,
       count: videos.length,
       videos,
     });
