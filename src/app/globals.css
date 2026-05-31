@@ -34,6 +34,30 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.glass-panel {
+  background: rgba(9, 9, 11, 0.72);
+  backdrop-filter: blur(12px);
+}
+
+.panel-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.panel-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 @media (display-mode: standalone) {
   body {
     user-select: none;

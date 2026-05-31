@@ -6,6 +6,7 @@ import type { GlobeInstance } from "globe.gl";
 import CountryList from "@/components/CountryList";
 import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
+import YoutubeChannelLink from "@/components/YoutubeChannelLink";
 
 type MapData = {
   stats: MapStats;
@@ -147,6 +148,23 @@ export default function TravelGlobe() {
     };
   }, [data]);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !globeRef.current) return;
+
+    const resizeGlobe = () => {
+      if (!globeRef.current || !containerRef.current) return;
+      globeRef.current
+        .width(containerRef.current.clientWidth)
+        .height(containerRef.current.clientHeight);
+    };
+
+    resizeGlobe();
+    const observer = new ResizeObserver(resizeGlobe);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [data, selection]);
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center text-zinc-400">
@@ -169,47 +187,76 @@ export default function TravelGlobe() {
   const isEmpty = (data?.stats.totalCountries ?? 0) === 0;
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={containerRef} className="absolute inset-0 touch-none" />
-
-      {globeError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
-          <p className="text-red-400">{globeError}</p>
-        </div>
-      )}
-
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-zinc-950/50" />
-
-      <header className="absolute left-0 right-0 top-0 z-10 px-3 pt-2 md:p-6">
-        <div className="mx-auto flex max-w-6xl items-start justify-between gap-2 md:gap-4">
+    <div className="flex h-full flex-col">
+      <header className="relative z-20 shrink-0 border-b border-white/5 bg-zinc-950/70 px-3 py-3 backdrop-blur-md md:px-5">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs md:tracking-[0.2em]">
-              Burak Durgun
-            </p>
-            <h1 className="truncate text-lg font-semibold text-white md:text-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs">
+                Burak Durgun
+              </p>
+              <YoutubeChannelLink />
+            </div>
+            <h1 className="truncate text-lg font-semibold text-white md:text-2xl">
               Seyahat Haritası
             </h1>
-            <p className="mt-0.5 hidden text-sm text-zinc-300 sm:block">
+            <p className="mt-0.5 hidden text-sm text-zinc-400 sm:block">
               Gezilen ülkeler ve videolar
             </p>
           </div>
 
           {data && (
-            <div className="grid shrink-0 grid-cols-2 gap-2 rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-2 text-center backdrop-blur md:gap-4 md:rounded-2xl md:px-4 md:py-3">
-              <Stat label="Ülke" value={data.stats.totalCountries} />
-              <Stat label="Video" value={data.stats.totalVideos} />
+            <div className="flex shrink-0 gap-2">
+              <StatPill label="Ülke" value={data.stats.totalCountries} />
+              <StatPill label="Video" value={data.stats.totalVideos} />
             </div>
           )}
         </div>
       </header>
 
-      {data && data.countries.length > 0 && (
-        <CountryList
-          countries={data.countries}
-          selectedCode={selection?.country_code}
-          onSelect={selectCountry}
-        />
-      )}
+      <div className="relative flex min-h-0 flex-1">
+        {data && data.countries.length > 0 && (
+          <div className="glass-panel hidden w-60 shrink-0 border-r border-white/10 md:flex lg:w-64">
+            <CountryList
+              countries={data.countries}
+              selectedCode={selection?.country_code}
+              onSelect={selectCountry}
+              className="w-full"
+            />
+          </div>
+        )}
+
+        <div className="relative min-w-0 flex-1">
+          <div ref={containerRef} className="absolute inset-0 touch-none" />
+
+          {globeError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
+              <p className="text-red-400">{globeError}</p>
+            </div>
+          )}
+
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.15)_50%,rgba(9,9,11,0.55)_100%)]" />
+
+          {isEmpty && (
+            <div className="absolute inset-0 flex items-center justify-center px-4">
+              <div className="max-w-md rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
+                <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
+                <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {selection && (
+          <div className="glass-panel hidden w-80 shrink-0 border-l border-white/10 lg:w-96 md:flex">
+            <VideoPanel
+              country={selection}
+              onClose={() => setSelection(null)}
+              variant="sidebar"
+            />
+          </div>
+        )}
+      </div>
 
       {!panelOpen && data && data.countries.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-zinc-950/95 px-3 py-2 backdrop-blur-md safe-bottom md:hidden">
@@ -234,25 +281,20 @@ export default function TravelGlobe() {
         />
       )}
 
-      {isEmpty && (
-        <div className="absolute left-1/2 top-1/2 z-20 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4">
-          <div className="rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
-            <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
-            <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
-          </div>
+      {selection && (
+        <div className="md:hidden">
+          <VideoPanel country={selection} onClose={() => setSelection(null)} variant="sheet" />
         </div>
       )}
-
-      {selection && <VideoPanel country={selection} onClose={() => setSelection(null)} />}
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-[2.5rem] md:min-w-0">
-      <p className="text-sm font-semibold text-white md:text-lg">{value}</p>
-      <p className="text-[10px] text-zinc-400 md:text-xs">{label}</p>
+    <div className="rounded-xl border border-white/10 bg-zinc-900/60 px-3 py-2 text-center backdrop-blur">
+      <p className="text-base font-semibold tabular-nums text-white md:text-lg">{value}</p>
+      <p className="text-[10px] text-zinc-500 md:text-xs">{label}</p>
     </div>
   );
 }
