@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MapCity, MapCountry, MapStats } from "@/lib/supabase/client";
+import type { GlobeInstance } from "globe.gl";
 
 type MapData = {
   stats: MapStats;
@@ -19,19 +20,27 @@ type GlobePoint = {
   countryCode: string;
 };
 
+const TEXTURES = {
+  globe: "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
+  bump: "https://unpkg.com/three-globe/example/img/earth-topology.png",
+  background: "https://unpkg.com/three-globe/example/img/night-sky.png",
+};
+
 export default function TravelGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const globeRef = useRef<unknown>(null);
+  const globeRef = useRef<GlobeInstance | null>(null);
   const [data, setData] = useState<MapData | null>(null);
   const [selected, setSelected] = useState<MapCountry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [globeError, setGlobeError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/map")
       .then(async (res) => {
-        if (!res.ok) throw new Error("Harita verisi yüklenemedi");
-        return res.json() as Promise<MapData>;
+        const json = (await res.json()) as MapData & { error?: string };
+        if (!res.ok) throw new Error(json.error ?? "Harita verisi yüklenemedi");
+        return json;
       })
       .then(setData)
       .catch((err: Error) => setError(err.message))
@@ -44,65 +53,83 @@ export default function TravelGlobe() {
     let mounted = true;
 
     async function initGlobe() {
-      const Globe = (await import("globe.gl")).default;
+      try {
+        const GlobeModule = await import("globe.gl");
+        const Globe = GlobeModule.default;
 
-      const container = containerRef.current;
-      if (!mounted || !container) return;
+        const container = containerRef.current;
+        if (!mounted || !container) return;
 
-      const countryPoints: GlobePoint[] = data!.countries.map((c) => ({
-        lat: c.lat,
-        lng: c.lng,
-        size: 0.35 + Math.min(c.video_count * 0.08, 1.2),
-        color: "#f97316",
-        label: `${c.country_name} · ${c.video_count} video`,
-        type: "country" as const,
-        countryCode: c.country_code,
-      }));
-
-      const cityPoints: GlobePoint[] = data!.cities.map((c) => ({
-        lat: c.lat,
-        lng: c.lng,
-        size: 0.2 + Math.min(c.video_count * 0.05, 0.8),
-        color: "#38bdf8",
-        label: `${c.city}, ${c.country_name} · ${c.video_count} video`,
-        type: "city" as const,
-        countryCode: c.country_code,
-      }));
-
-      const points = [...countryPoints, ...cityPoints];
-
-      const globe = Globe(container)
-        .globeImageUrl("//unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
-        .bumpImageUrl("//unpkg.com/three-globe/example/img/earth-topology.png")
-        .backgroundImageUrl("//unpkg.com/three-globe/example/img/night-sky.png")
-        .pointsData(points)
-        .pointAltitude("size")
-        .pointColor("color")
-        .pointLabel("label")
-        .onPointClick((point: object) => {
-          const p = point as GlobePoint;
-          const country = data!.countries.find((c) => c.country_code === p.countryCode);
-          if (country) setSelected(country);
-        })
-        .width(container.clientWidth)
-        .height(container.clientHeight);
-
-      globe.controls().autoRotate = true;
-      globe.controls().autoRotateSpeed = 0.4;
-      globeRef.current = globe;
-
-      const handleResize = () => {
-        if (!globeRef.current) return;
-        const g = globeRef.current as ReturnType<typeof Globe>;
-        g.width(container.clientWidth);
-        g.height(container.clientHeight);
-      };
-
-      window.addEventListener("resize", handleResize);
-      return () => {
-        window.removeEventListener("resize", handleResize);
         container.innerHTML = "";
-      };
+
+        const countryPoints: GlobePoint[] = data!.countries.map((c) => ({
+          lat: c.lat,
+          lng: c.lng,
+          size: 0.5 + Math.min(c.video_count * 0.12, 1.5),
+          color: "#f97316",
+          label: `${c.country_name} · ${c.video_count} video`,
+          type: "country" as const,
+          countryCode: c.country_code,
+        }));
+
+        const cityPoints: GlobePoint[] = data!.cities.map((c) => ({
+          lat: c.lat,
+          lng: c.lng,
+          size: 0.35 + Math.min(c.video_count * 0.08, 1),
+          color: "#38bdf8",
+          label: `${c.city}, ${c.country_name} · ${c.video_count} video`,
+          type: "city" as const,
+          countryCode: c.country_code,
+        }));
+
+        const points = [...countryPoints, ...cityPoints];
+
+        const globe = new Globe(container, { animateIn: true })
+          .globeImageUrl(TEXTURES.globe)
+          .bumpImageUrl(TEXTURES.bump)
+          .backgroundImageUrl(TEXTURES.background)
+          .showAtmosphere(true)
+          .atmosphereColor("#3a228a")
+          .atmosphereAltitude(0.15)
+          .pointsData(points)
+          .pointLat("lat")
+          .pointLng("lng")
+          .pointAltitude(0.02)
+          .pointRadius((d) => (d as GlobePoint).size * 0.35)
+          .pointColor("color")
+          .pointLabel("label")
+          .onPointClick((point: object) => {
+            const p = point as GlobePoint;
+            const country = data!.countries.find((c) => c.country_code === p.countryCode);
+            if (country) setSelected(country);
+          })
+          .width(container.clientWidth)
+          .height(container.clientHeight);
+
+        globe.controls().autoRotate = true;
+        globe.controls().autoRotateSpeed = 0.5;
+        globe.controls().enableZoom = true;
+        globeRef.current = globe;
+
+        const handleResize = () => {
+          if (!globeRef.current || !containerRef.current) return;
+          globeRef.current
+            .width(containerRef.current.clientWidth)
+            .height(containerRef.current.clientHeight);
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => {
+          window.removeEventListener("resize", handleResize);
+          globeRef.current?._destructor();
+          globeRef.current = null;
+          container.innerHTML = "";
+        };
+      } catch (err) {
+        if (mounted) {
+          setGlobeError(err instanceof Error ? err.message : "3D harita başlatılamadı");
+        }
+      }
     }
 
     const cleanupPromise = initGlobe();
@@ -126,15 +153,23 @@ export default function TravelGlobe() {
       <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-red-400">{error}</p>
         <p className="max-w-md text-sm text-zinc-500">
-          Supabase bağlantısını ve migration SQL dosyasını çalıştırdığınızdan emin olun.
+          Vercel env değişkenlerini ve Supabase migration SQL dosyasını kontrol edin.
         </p>
       </div>
     );
   }
 
+  const isEmpty = (data?.stats.totalCountries ?? 0) === 0;
+
   return (
-    <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" />
+    <div className="relative h-full w-full min-h-[400px]">
+      <div ref={containerRef} className="absolute inset-0" />
+
+      {globeError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
+          <p className="text-red-400">{globeError}</p>
+        </div>
+      )}
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-zinc-950/40" />
 
@@ -157,6 +192,24 @@ export default function TravelGlobe() {
           )}
         </div>
       </header>
+
+      {isEmpty && (
+        <div className="absolute left-1/2 top-1/2 z-20 w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-6">
+          <div className="rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-6 text-center backdrop-blur">
+            <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
+            <p className="mt-2 text-sm text-zinc-400">
+              {data?.stats.totalVideos
+                ? `${data.stats.totalVideos} video var ama konum çıkarılamamış. Sync tekrar çalıştırın.`
+                : "Önce YouTube sync çalıştırılmalı."}
+            </p>
+            <p className="mt-3 text-xs text-zinc-500">
+              Yerelde: <code className="text-orange-300">npm run sync</code>
+              <br />
+              Canlıda: <code className="text-orange-300">/api/sync?secret=...</code>
+            </p>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <aside className="absolute bottom-6 left-6 z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-950/85 p-5 backdrop-blur">
@@ -189,8 +242,12 @@ export default function TravelGlobe() {
       )}
 
       <div className="absolute bottom-6 right-6 z-10 rounded-xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-xs text-zinc-300 backdrop-blur">
-        <p><span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Ülke</p>
-        <p className="mt-1"><span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> Şehir</p>
+        <p>
+          <span className="inline-block h-2 w-2 rounded-full bg-orange-500" /> Ülke
+        </p>
+        <p className="mt-1">
+          <span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> Şehir
+        </p>
       </div>
     </div>
   );
