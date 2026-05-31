@@ -8,11 +8,12 @@ import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
 import { YOUTUBE_CHANNEL_URL, YoutubeIcon } from "@/components/YoutubeChannelLink";
 import {
-  createFlagPinElement,
-  updateFlagPinSelection,
-  updateFlagPinSizes,
+  createFlagSprite,
+  markerSizeForAltitude,
+  preloadRoundFlagTextures,
+  updateAllFlagSprites,
   type GlobeCountryMarker,
-} from "@/lib/globe/country-flag-marker";
+} from "@/lib/globe/country-flag-sprite";
 import { getCountryFocusAltitude, type FocusZoomSource } from "@/lib/globe/country-focus-altitude";
 import {
   getVisitedPolygonCapColor,
@@ -92,9 +93,10 @@ export default function TravelGlobe() {
       ),
     );
 
-    if (containerRef.current) {
-      updateFlagPinSelection(containerRef.current, selection?.country_code);
-    }
+    updateAllFlagSprites(globe.scene(), {
+      altitude: globe.pointOfView().altitude,
+      selectedCode: selection?.country_code,
+    });
   }, [selection]);
 
   useEffect(() => {
@@ -122,6 +124,11 @@ export default function TravelGlobe() {
         const countryByCode = new Map(
           data!.countries.map((country) => [country.country_code, country]),
         );
+
+        await preloadRoundFlagTextures(data!.countries.map((c) => c.country_code));
+        if (!mounted || !container) return;
+
+        const markerSize = markerSizeForAltitude(2.5);
 
         const globe = new Globe(container, { animateIn: true })
           .globeImageUrl(TEXTURES.globe)
@@ -160,32 +167,31 @@ export default function TravelGlobe() {
               FOCUS_ANIMATION_MS,
             );
           })
-          .htmlElementsData(markers)
-          .htmlLat("lat")
-          .htmlLng("lng")
-          .htmlAltitude(0.015)
-          .htmlTransitionDuration(0)
-          .htmlElement((d) =>
-            createFlagPinElement(d as GlobeCountryMarker, (countryCode) => {
-              const country = countryByCode.get(countryCode);
-              if (!country) return;
-              selectionRef.current = country;
-              setSelection(country);
-              globe.pointOfView(
-                {
-                  lat: country.lat,
-                  lng: country.lng,
-                  altitude: getCountryFocusAltitude(country.country_code, "globe"),
-                },
-                FOCUS_ANIMATION_MS,
-              );
-            }),
+          .objectsData(markers)
+          .objectLat("lat")
+          .objectLng("lng")
+          .objectAltitude(0.01)
+          .objectLabel("label")
+          .objectThreeObject((d) =>
+            createFlagSprite((d as GlobeCountryMarker).countryCode, markerSize),
           )
-          .htmlElementVisibilityModifier((el, isVisible) => {
-            (el as HTMLElement).style.opacity = isVisible ? "1" : "0.12";
+          .onObjectClick((obj: object) => {
+            const marker = obj as GlobeCountryMarker;
+            const country = countryByCode.get(marker.countryCode);
+            if (!country) return;
+            selectionRef.current = country;
+            setSelection(country);
+            globe.pointOfView(
+              {
+                lat: country.lat,
+                lng: country.lng,
+                altitude: getCountryFocusAltitude(country.country_code, "globe"),
+              },
+              FOCUS_ANIMATION_MS,
+            );
           })
           .onZoom(({ altitude }) => {
-            updateFlagPinSizes(container, altitude);
+            updateAllFlagSprites(globe.scene(), { altitude });
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
@@ -198,8 +204,6 @@ export default function TravelGlobe() {
         controls.dampingFactor = 0.1;
         controls.maxDistance = GLOBE_RADIUS * (1 + MAX_GLOBE_ALTITUDE);
         globeRef.current = globe;
-
-        updateFlagPinSizes(container, globe.pointOfView().altitude);
 
         loadVisitedCountryPolygons(data!.countries.map((c) => c.country_code))
           .then((polygons) => {
