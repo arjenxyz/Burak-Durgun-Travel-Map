@@ -118,25 +118,7 @@ export default function WelcomeModal() {
           </div>
         </div>
 
-        <div className="space-y-3 px-5 py-5 sm:px-6">
-          <WelcomeStep
-            index={1}
-            title="Haritada dolaş"
-            text="Küreyi çevir, turuncu noktalar Burak'ın gittiği ülkeler."
-          />
-          <WelcomeStep
-            index={2}
-            title="Ülke seç, izle"
-            text="Bir ülkeye dokun — o destinasyondaki tüm videolar açılır."
-          />
-          <WelcomeStep
-            index={3}
-            title="Liste ve kanal"
-            text="Sağ üstten ülke listesine ulaşabilir veya YouTube'dan takip edebilirsin."
-          />
-        </div>
-
-        <div className="flex flex-col gap-2.5 border-t border-white/10 px-5 py-4 sm:px-6">
+        <div className="flex flex-col gap-2.5 px-5 py-4 sm:px-6 sm:py-5">
           <button
             type="button"
             onClick={dismiss}
@@ -156,31 +138,6 @@ export default function WelcomeModal() {
             YouTube kanalı
           </a>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function WelcomeStep({
-  index,
-  title,
-  text,
-}: {
-  index: number;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div
-      className="welcome-step flex gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-3"
-      style={{ animationDelay: `${0.15 + index * 0.1}s` }}
-    >
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-xs font-semibold text-orange-400 ring-1 ring-orange-500/25">
-        {index}
-      </span>
-      <div className="min-w-0 pt-0.5">
-        <p className="text-sm font-medium text-zinc-200">{title}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-zinc-500 sm:text-sm">{text}</p>
       </div>
     </div>
   );

@@ -201,17 +201,6 @@ body {
   }
 }
 
-@keyframes welcome-step-in {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .welcome-overlay-in {
   animation: welcome-overlay-in 0.35s ease-out forwards;
 }
@@ -254,10 +243,6 @@ body {
   animation: welcome-pin-ring 2.4s ease-in-out infinite;
 }
 
-.welcome-step {
-  animation: welcome-step-in 0.5s ease-out backwards;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .welcome-overlay-in,
   .welcome-overlay-out,
@@ -266,8 +251,7 @@ body {
   .welcome-globe-sphere,
   .welcome-route,
   .welcome-pin,
-  .welcome-pin-ring,
-  .welcome-step {
+  .welcome-pin-ring {
     animation: none;
   }
 
