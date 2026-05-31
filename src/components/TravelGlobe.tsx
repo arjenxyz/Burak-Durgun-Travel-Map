@@ -1,5 +1,6 @@
 "use client";
 
+import { Cormorant_Garamond } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import type { MapCountry, MapStats } from "@/lib/supabase/client";
 import type { GlobeInstance } from "globe.gl";
@@ -7,6 +8,11 @@ import CountryList from "@/components/CountryList";
 import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
 import { YOUTUBE_CHANNEL_URL, YoutubeIcon } from "@/components/YoutubeChannelLink";
+
+const travelSubtitle = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+});
 
 type MapData = {
   stats: MapStats;
@@ -202,26 +208,28 @@ export default function TravelGlobe() {
   return (
     <div className="relative flex h-full flex-col md:block">
       <header className="relative z-20 shrink-0 border-b border-white/5 bg-zinc-950/70 px-3 py-3 backdrop-blur-md md:absolute md:inset-x-0 md:top-0 md:border-b-0 md:bg-gradient-to-b md:from-zinc-950/90 md:via-zinc-950/45 md:to-transparent md:px-8 md:py-6 md:backdrop-blur-none">
-        <div className="flex items-center justify-between gap-3 md:mx-auto md:max-w-[1600px]">
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-semibold text-white md:text-3xl md:tracking-tight lg:text-4xl">
+        <div className="flex items-start justify-between gap-3 md:items-center md:mx-auto md:max-w-[1600px]">
+          <div className="flex min-w-0 flex-1 flex-col-reverse md:flex-col">
+            <h1
+              className={`${travelSubtitle.className} mt-0.5 truncate text-[17px] font-medium leading-snug tracking-wide text-zinc-400 md:mt-0 md:font-sans md:text-3xl md:font-semibold md:text-white md:tracking-tight lg:text-4xl`}
+            >
               Seyahat Haritası
             </h1>
             <a
               href={YOUTUBE_CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-0.5 inline-flex items-center gap-1.5 transition hover:opacity-90 active:scale-[0.99] md:mt-1.5 md:gap-2"
+              className="inline-flex items-center gap-2 transition hover:opacity-90 active:scale-[0.99] md:mt-1.5 md:gap-2"
               aria-label="Burak Durgun YouTube kanalı"
             >
-              <span className="shrink-0 text-red-500">
-                <YoutubeIcon size={18} />
+              <span className="shrink-0 text-red-500 [&_svg]:h-[22px] [&_svg]:w-[22px] md:[&_svg]:h-[18px] md:[&_svg]:w-[18px]">
+                <YoutubeIcon size={22} />
               </span>
-              <span className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs md:tracking-[0.2em]">
+              <span className="truncate text-lg font-semibold text-white md:text-xs md:font-normal md:uppercase md:tracking-[0.2em] md:text-orange-400">
                 Burak Durgun
               </span>
             </a>
-            <p className="mt-0.5 hidden text-sm text-zinc-400 sm:block md:mt-2 md:text-zinc-500">
+            <p className="mt-0.5 hidden text-sm text-zinc-400 md:mt-2 md:block md:font-sans md:text-zinc-500">
               Gezilen ülkeler ve videolar
             </p>
           </div>
@@ -319,7 +327,7 @@ function CountryCountButton({
       onClick={onClick}
       aria-expanded={open}
       aria-label={open ? "Ülke listesini kapat" : "Ülke listesini aç"}
-      className={`shrink-0 rounded-xl border text-center backdrop-blur transition md:flex md:items-center md:gap-2.5 md:rounded-2xl md:px-4 md:py-2.5 ${
+      className={`flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2 backdrop-blur transition md:rounded-2xl md:px-4 md:py-2.5 ${
         open
           ? "border-orange-500/40 bg-orange-500/15"
           : "border-white/10 bg-zinc-900/60 hover:border-white/20 hover:bg-zinc-900/80"
@@ -328,10 +336,8 @@ function CountryCountButton({
       <span className="hidden text-lg md:inline" aria-hidden>
         🌍
       </span>
-      <span className="md:text-left">
-        <p className="text-base font-semibold tabular-nums text-white md:text-xl">{count}</p>
-        <p className="text-[10px] text-zinc-500 md:text-xs">{open ? "Listeyi kapat" : "Ülke"}</p>
-      </span>
+      <span className="text-base font-semibold tabular-nums text-white md:text-xl">{count}</span>
+      <span className="text-sm text-zinc-400 md:text-xs">Ülke</span>
     </button>
   );
 }
