@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCountryDisplayName } from "@/lib/locations/country-display-names";
+import { resolveCountryCoords } from "@/lib/locations/geocode";
 import { createServiceClient, type MapCountry } from "@/lib/supabase/client";
 
 export async function GET() {
@@ -22,8 +23,10 @@ export async function GET() {
 
     const countries = (countriesRes.data ?? []).map((row) => {
       const country = row as MapCountry;
+      const coords = resolveCountryCoords(country.country_code, country.lat, country.lng);
       return {
         ...country,
+        ...coords,
         country_name: getCountryDisplayName(country.country_code, country.country_name),
       };
     });

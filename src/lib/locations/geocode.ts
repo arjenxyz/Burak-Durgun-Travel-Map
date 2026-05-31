@@ -130,6 +130,26 @@ const COUNTRY_COORDS: Record<string, { lat: number; lng: number }> = {
   LT: { lat: 55.1694, lng: 23.8813 },
 };
 
+export function getCountryCentroid(countryCode: string): { lat: number; lng: number } | null {
+  return COUNTRY_COORDS[countryCode.toUpperCase()] ?? null;
+}
+
+/** Ortalama koordinat 0,0 veya geçersizse ülke merkezine düş */
+export function resolveCountryCoords(
+  countryCode: string,
+  lat: number,
+  lng: number,
+): { lat: number; lng: number } {
+  const centroid = getCountryCentroid(countryCode);
+  const invalid =
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    (Math.abs(lat) < 1 && Math.abs(lng) < 1);
+
+  if (invalid && centroid) return centroid;
+  return { lat, lng };
+}
+
 export async function geocodePlace(place: PlaceEntry): Promise<{ lat: number; lng: number } | null> {
   return COUNTRY_COORDS[place.countryCode] ?? null;
 }
