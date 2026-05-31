@@ -33,24 +33,10 @@ export default function TravelGlobe() {
   const globeRef = useRef<GlobeInstance | null>(null);
   const [data, setData] = useState<MapData | null>(null);
   const [selection, setSelection] = useState<MapCountry | null>(null);
-  const [countryListOpen, setCountryListOpen] = useState(false);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globeError, setGlobeError] = useState<string | null>(null);
-
-  function toggleCountryList() {
-    if (window.matchMedia("(min-width: 768px)").matches) {
-      setCountryListOpen((open) => !open);
-    } else {
-      setCountrySheetOpen((open) => !open);
-    }
-  }
-
-  function closeCountryList() {
-    setCountryListOpen(false);
-    setCountrySheetOpen(false);
-  }
 
   useEffect(() => {
     fetch("/api/map")
@@ -175,7 +161,7 @@ export default function TravelGlobe() {
     const observer = new ResizeObserver(resizeGlobe);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [data]);
+  }, [data, selection]);
 
   if (loading) {
     return (
@@ -197,7 +183,6 @@ export default function TravelGlobe() {
   }
 
   const isEmpty = (data?.stats.totalCountries ?? 0) === 0;
-  const listOpen = countryListOpen || countrySheetOpen;
 
   return (
     <div className="relative flex h-full flex-col">
@@ -224,55 +209,74 @@ export default function TravelGlobe() {
           </div>
 
           {data && data.stats.totalCountries > 0 && (
-            <CountryCountButton
-              count={data.stats.totalCountries}
-              open={listOpen}
-              onClick={toggleCountryList}
-            />
+            <>
+              <button
+                type="button"
+                onClick={() => setCountrySheetOpen((open) => !open)}
+                aria-expanded={countrySheetOpen}
+                className={`flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 backdrop-blur transition md:hidden ${
+                  countrySheetOpen
+                    ? "border-orange-500/40 bg-orange-500/15"
+                    : "border-white/10 bg-zinc-900/60"
+                }`}
+              >
+                <span className="text-sm font-semibold tabular-nums text-white">
+                  {data.stats.totalCountries}
+                </span>
+                <span className="text-xs text-zinc-400">Ülke</span>
+              </button>
+              <div className="hidden shrink-0 items-center gap-1 rounded-lg border border-white/10 bg-zinc-900/60 px-3 py-2 md:flex">
+                <span className="text-sm font-semibold tabular-nums text-white">
+                  {data.stats.totalCountries}
+                </span>
+                <span className="text-xs text-zinc-400">Ülke</span>
+              </div>
+            </>
           )}
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1">
-        <div ref={containerRef} className="absolute inset-0 touch-none" />
-
-        {globeError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
-            <p className="text-red-400">{globeError}</p>
-          </div>
-        )}
-
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.12)_55%,rgba(9,9,11,0.45)_100%)]" />
-
-        {isEmpty && (
-          <div className="absolute inset-0 flex items-center justify-center px-4">
-            <div className="max-w-md rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
-              <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
-              <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
-            </div>
-          </div>
-        )}
-
-        {data && data.countries.length > 0 && countryListOpen && (
-          <div className="floating-panel panel-enter-left absolute bottom-3 left-3 top-3 z-30 hidden w-72 overflow-hidden md:flex lg:bottom-4 lg:left-4 lg:top-4 lg:w-80">
+      <div className="flex min-h-0 flex-1">
+        {data && data.countries.length > 0 && (
+          <aside className="glass-panel hidden w-60 shrink-0 border-r border-white/10 md:flex lg:w-64">
             <CountryList
               countries={data.countries}
               selectedCode={selection?.country_code}
               onSelect={selectCountry}
-              onClose={closeCountryList}
               className="w-full"
             />
-          </div>
+          </aside>
         )}
 
+        <div className="relative min-w-0 flex-1">
+          <div ref={containerRef} className="absolute inset-0 touch-none" />
+
+          {globeError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
+              <p className="text-red-400">{globeError}</p>
+            </div>
+          )}
+
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.12)_55%,rgba(9,9,11,0.45)_100%)]" />
+
+          {isEmpty && (
+            <div className="absolute inset-0 flex items-center justify-center px-4">
+              <div className="max-w-md rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
+                <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
+                <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {selection && (
-          <div className="floating-panel panel-enter-right absolute bottom-3 right-3 top-3 z-30 hidden w-[min(100%,20rem)] overflow-hidden md:flex lg:bottom-4 lg:right-4 lg:top-4 lg:w-96">
+          <aside className="glass-panel hidden w-80 shrink-0 border-l border-white/10 lg:w-96 md:flex">
             <VideoPanel
               country={selection}
               onClose={() => setSelection(null)}
               variant="sidebar"
             />
-          </div>
+          </aside>
         )}
       </div>
 
@@ -281,7 +285,7 @@ export default function TravelGlobe() {
           open={countrySheetOpen}
           countries={data.countries}
           selectedCode={selection?.country_code}
-          onClose={closeCountryList}
+          onClose={() => setCountrySheetOpen(false)}
           onSelect={selectCountry}
         />
       )}
@@ -292,32 +296,5 @@ export default function TravelGlobe() {
         </div>
       )}
     </div>
-  );
-}
-
-function CountryCountButton({
-  count,
-  open,
-  onClick,
-}: {
-  count: number;
-  open: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={open}
-      aria-label={open ? "Ülke listesini kapat" : "Ülke listesini aç"}
-      className={`flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 backdrop-blur transition md:px-3 md:py-2 ${
-        open
-          ? "border-orange-500/40 bg-orange-500/15"
-          : "border-white/10 bg-zinc-900/60 hover:border-white/20 hover:bg-zinc-900/80"
-      }`}
-    >
-      <span className="text-sm font-semibold tabular-nums text-white">{count}</span>
-      <span className="text-xs text-zinc-400">Ülke</span>
-    </button>
   );
 }
