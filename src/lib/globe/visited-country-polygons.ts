@@ -1,5 +1,5 @@
 const COUNTRIES_GEOJSON_URL =
-  "https://cdn.jsdelivr.net/gh/datasets/geo-countries-110m@master/data/countries.geojson";
+  "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson";
 
 type CountryPolygonProperties = {
   ISO_A2?: string;

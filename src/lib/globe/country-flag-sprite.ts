@@ -9,6 +9,9 @@ export type GlobeCountryMarker = {
 };
 
 const TEXTURE_SIZE = 64;
+/** Küre yarıçapına (~100) göre okunabilir yuvarlak bayrak */
+const DISC_RADIUS = 2.2;
+
 const textureCache = new Map<string, THREE.Texture>();
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -71,14 +74,14 @@ function getRoundFlagTexture(countryCode: string): THREE.Texture {
       texture!.needsUpdate = true;
     })
     .catch(() => {
-      /* fallback canvas already set */
+      /* turuncu fallback canvas */
     });
 
   return texture;
 }
 
 export async function preloadRoundFlagTextures(codes: string[]): Promise<void> {
-  await Promise.all(
+  await Promise.allSettled(
     codes.map(async (code) => {
       const key = code.toUpperCase();
       if (textureCache.has(key)) return;
@@ -98,44 +101,17 @@ export async function preloadRoundFlagTextures(codes: string[]): Promise<void> {
   );
 }
 
-/** sizeAttenuation:false → ekranda sabit piksel, uzakta küçülmez */
-export function markerSizeForAltitude(altitude: number): number {
-  return Math.round(Math.min(28, Math.max(20, 16 + altitude * 3)));
-}
-
-export function applyFlagSpriteSize(sprite: THREE.Sprite, sizePx: number, selected = false) {
-  const scale = selected ? sizePx * 1.12 : sizePx;
-  sprite.scale.set(scale, scale, 1);
-  sprite.userData.selected = selected;
-}
-
-export function createFlagSprite(countryCode: string, sizePx: number): THREE.Sprite {
+export function createFlagDiscObject(countryCode: string): THREE.Mesh {
   const key = countryCode.toUpperCase();
-  const material = new THREE.SpriteMaterial({
+  const geometry = new THREE.CircleGeometry(DISC_RADIUS, 32);
+  const material = new THREE.MeshBasicMaterial({
     map: getRoundFlagTexture(key),
-    sizeAttenuation: false,
+    side: THREE.DoubleSide,
     transparent: true,
-    depthTest: true,
     depthWrite: false,
   });
 
-  const sprite = new THREE.Sprite(material);
-  sprite.center.set(0.5, 0.5);
-  sprite.renderOrder = 10;
-  sprite.userData = { countryCode: key, isFlagMarker: true };
-  applyFlagSpriteSize(sprite, sizePx, false);
-  return sprite;
-}
-
-export function updateAllFlagSprites(
-  scene: THREE.Scene,
-  options: { altitude: number; selectedCode?: string },
-) {
-  const sizePx = markerSizeForAltitude(options.altitude);
-  const selected = options.selectedCode?.toUpperCase();
-
-  scene.traverse((obj) => {
-    if (!(obj instanceof THREE.Sprite) || !obj.userData?.isFlagMarker) return;
-    applyFlagSpriteSize(obj, sizePx, obj.userData.countryCode === selected);
-  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.renderOrder = 5;
+  return mesh;
 }

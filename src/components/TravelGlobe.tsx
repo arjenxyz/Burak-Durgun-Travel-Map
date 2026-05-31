@@ -8,10 +8,8 @@ import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
 import { YOUTUBE_CHANNEL_URL, YoutubeIcon } from "@/components/YoutubeChannelLink";
 import {
-  createFlagSprite,
-  markerSizeForAltitude,
+  createFlagDiscObject,
   preloadRoundFlagTextures,
-  updateAllFlagSprites,
   type GlobeCountryMarker,
 } from "@/lib/globe/country-flag-sprite";
 import { getCountryFocusAltitude, type FocusZoomSource } from "@/lib/globe/country-focus-altitude";
@@ -92,11 +90,6 @@ export default function TravelGlobe() {
         selection?.country_code,
       ),
     );
-
-    updateAllFlagSprites(globe.scene(), {
-      altitude: globe.pointOfView().altitude,
-      selectedCode: selection?.country_code,
-    });
   }, [selection]);
 
   useEffect(() => {
@@ -127,8 +120,6 @@ export default function TravelGlobe() {
 
         await preloadRoundFlagTextures(data!.countries.map((c) => c.country_code));
         if (!mounted || !container) return;
-
-        const markerSize = markerSizeForAltitude(2.5);
 
         const globe = new Globe(container, { animateIn: true })
           .globeImageUrl(TEXTURES.globe)
@@ -170,10 +161,11 @@ export default function TravelGlobe() {
           .objectsData(markers)
           .objectLat("lat")
           .objectLng("lng")
-          .objectAltitude(0.01)
+          .objectAltitude(0.015)
+          .objectFacesSurface(true)
           .objectLabel("label")
           .objectThreeObject((d) =>
-            createFlagSprite((d as GlobeCountryMarker).countryCode, markerSize),
+            createFlagDiscObject((d as GlobeCountryMarker).countryCode),
           )
           .onObjectClick((obj: object) => {
             const marker = obj as GlobeCountryMarker;
@@ -189,9 +181,6 @@ export default function TravelGlobe() {
               },
               FOCUS_ANIMATION_MS,
             );
-          })
-          .onZoom(({ altitude }) => {
-            updateAllFlagSprites(globe.scene(), { altitude });
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
@@ -210,8 +199,8 @@ export default function TravelGlobe() {
             if (!mounted || globeRef.current !== globe) return;
             globe.polygonsData(polygons);
           })
-          .catch(() => {
-            /* bayraklar yine görünür; sınır katmanı opsiyonel */
+          .catch((err) => {
+            console.warn("Ülke sınırları yüklenemedi:", err);
           });
 
         const handleResize = () => {
