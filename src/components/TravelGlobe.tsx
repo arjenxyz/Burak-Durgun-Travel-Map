@@ -191,15 +191,15 @@ export default function TravelGlobe() {
       <header className="relative z-20 shrink-0 border-b border-white/5 bg-zinc-950/70 px-3 py-3 backdrop-blur-md md:px-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs">
-                Burak Durgun
-              </p>
-              <YoutubeChannelLink />
-            </div>
             <h1 className="truncate text-lg font-semibold text-white md:text-2xl">
               Seyahat Haritası
             </h1>
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <YoutubeChannelLink />
+              <p className="text-[10px] uppercase tracking-[0.15em] text-orange-400 md:text-xs">
+                Burak Durgun
+              </p>
+            </div>
             <p className="mt-0.5 hidden text-sm text-zinc-400 sm:block">
               Gezilen ülkeler ve videolar
             </p>
