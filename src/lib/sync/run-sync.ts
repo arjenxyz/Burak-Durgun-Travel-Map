@@ -1,7 +1,8 @@
 import { geocodePlaces } from "@/lib/locations/geocode";
-import { parseLocationsFromVideo } from "@/lib/locations/location-aliases";
+import { resolveVideoPlaces } from "@/lib/locations/location-aliases";
 import { createServiceClient } from "@/lib/supabase/client";
 import { fetchAllVideosFromApi } from "@/lib/youtube/api";
+import { buildVideoCountryMapFromPlaylists, type PlaylistSyncStats } from "@/lib/youtube/playlists";
 import { fetchVideosFromRss } from "@/lib/youtube/rss";
 import type { YouTubeVideoItem } from "@/lib/youtube/types";
 
@@ -15,6 +16,9 @@ export type SyncResult = {
   source: "api" | "rss";
   youtubeApiKeyConfigured: boolean;
   sourceReason?: string;
+  playlistsScanned?: number;
+  playlistsWithCountry?: number;
+  videosFromPlaylists?: number;
 };
 
 export type SyncOptions = {
@@ -105,14 +109,15 @@ async function upsertVideoBatch(
 
 async function parseVideo(
   supabase: ReturnType<typeof createServiceClient>,
-  video: { id: string; title: string; description: string | null },
+  video: { id: string; youtube_id: string; title: string; description: string | null },
+  playlistCountries?: Array<{ code: string; name: string }>,
 ): Promise<{ added: number; skipped: number }> {
   let added = 0;
   let skipped = 0;
 
   await supabase.from("video_locations").delete().eq("video_id", video.id);
 
-  const places = parseLocationsFromVideo(video.title, video.description ?? "");
+  const places = resolveVideoPlaces(video.title, video.description ?? "", playlistCountries ?? []);
   if (places.length === 0) {
     await supabase.from("videos").update({ parsed_at: new Date().toISOString() }).eq("id", video.id);
     return { added, skipped };
@@ -130,7 +135,7 @@ async function parseVideo(
         lat: place.lat,
         lng: place.lng,
         confidence: place.confidence,
-        source: "parser",
+        source: place.source ?? "parser",
       },
       { onConflict: "video_id,country_code,city", ignoreDuplicates: false },
     );
@@ -168,6 +173,7 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
   let source: "api" | "rss" = "rss";
   let youtubeApiKeyConfigured = false;
   let sourceReason: string | undefined;
+  let playlistStats: PlaylistSyncStats | undefined;
 
   try {
     if (options.reparseAll) {
@@ -190,9 +196,28 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
     const existingIds = new Set((existingVideos ?? []).map((v) => v.youtube_id));
     videosNew = await upsertVideoBatch(supabase, fetched.videos, existingIds);
 
+    let videoCountryMap: Map<string, Array<{ code: string; name: string }>> | undefined;
+
+    if (source === "api" && process.env.YOUTUBE_API_KEY?.trim()) {
+      try {
+        const playlistResult = await buildVideoCountryMapFromPlaylists(
+          process.env.YOUTUBE_API_KEY.trim(),
+          channelId,
+        );
+        videoCountryMap = playlistResult.map;
+        playlistStats = playlistResult.stats;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn("[sync] Playlist country map failed:", message);
+        sourceReason = sourceReason
+          ? `${sourceReason}; playlist map failed: ${message}`
+          : `Playlist map failed: ${message}`;
+      }
+    }
+
     let unparsedQuery = supabase
       .from("videos")
-      .select("id, title, description")
+      .select("id, youtube_id, title, description")
       .is("parsed_at", null)
       .order("published_at", { ascending: false });
 
@@ -204,7 +229,8 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
     if (parseQueryError) throw new Error(formatSupabaseError(parseQueryError));
 
     for (const video of toParse ?? []) {
-      const result = await parseVideo(supabase, video);
+      const playlistCountries = videoCountryMap?.get(video.youtube_id);
+      const result = await parseVideo(supabase, video, playlistCountries);
       locationsAdded += result.added;
       locationsSkipped += result.skipped;
       videosParsed += 1;
@@ -238,6 +264,9 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
       source,
       youtubeApiKeyConfigured,
       sourceReason,
+      playlistsScanned: playlistStats?.playlistsScanned,
+      playlistsWithCountry: playlistStats?.playlistsWithCountry,
+      videosFromPlaylists: playlistStats?.videosMapped,
     };
   } catch (error) {
     await supabase

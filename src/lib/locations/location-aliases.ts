@@ -7,6 +7,7 @@ export type PlaceEntry = {
   city?: string;
   geocodeQuery: string;
   confidence: number;
+  source?: "parser" | "playlist";
 };
 
 /** Kaydedilecek minimum güven — altındakiler atılır */
@@ -205,6 +206,8 @@ const TITLE_CITY_PATTERNS = [
 
 const CITY_KEYS_BY_COUNTRY = cityKeysByCountry();
 const MIN_CITY_KEY_LENGTH = 4;
+const COUNTRY_KEYS_SORTED = Object.keys(COUNTRY_ALIASES).sort((a, b) => b.length - a.length);
+const MIN_COUNTRY_KEY_LENGTH = 3;
 
 function normalizeKey(input: string): string {
   return input
@@ -326,7 +329,88 @@ function addCountryFromTag(
     countryName: country.name,
     geocodeQuery: country.name,
     confidence,
+    source: "parser",
   });
+}
+
+/** Oynatma listesi başlığı veya serbest metinden ülke adları çıkarır */
+export function parseCountriesFromText(text: string): Array<{ code: string; name: string }> {
+  const normalized = normalizeKey(text);
+  const found: Array<{ code: string; name: string }> = [];
+  const seen = new Set<string>();
+
+  for (const key of COUNTRY_KEYS_SORTED) {
+    if (key.length < MIN_COUNTRY_KEY_LENGTH) continue;
+    if (!normalized.includes(key)) continue;
+
+    const country = COUNTRY_ALIASES[key];
+    if (seen.has(country.code)) continue;
+    seen.add(country.code);
+    found.push({ code: country.code, name: country.name });
+  }
+
+  return found;
+}
+
+function parseCitiesForAnchor(title: string, description: string, anchorCode: string): PlaceEntry[] {
+  const places: PlaceEntry[] = [];
+
+  places.push(...parseTitleCityPatterns(title, anchorCode));
+  places.push(...findCitiesInAnchoredTitle(title, anchorCode));
+
+  for (const tag of extractHashtags(title)) {
+    addCityFromTag(places, tag, anchorCode, 0.92);
+  }
+
+  for (const word of title.split(/\s+/)) {
+    const cleaned = word.replace(/[^A-ZÇĞİÖŞÜa-zçğıöşü]/g, "");
+    const city = resolveCity(cleaned);
+    if (city && city.countryCode === anchorCode) {
+      places.push(toCityPlace(city, 0.88));
+    }
+  }
+
+  const descHead = description.split("\n").slice(0, 3).join("\n");
+  for (const tag of extractHashtags(descHead)) {
+    addCityFromTag(places, tag, anchorCode, 0.9);
+  }
+
+  return places;
+}
+
+export type PlaylistCountryRef = { code: string; name: string };
+
+/**
+ * Ülke: öncelik oynatma listesi → yoksa başlık parser.
+ * Şehir: başlık parser (playlist ülkesine bağlı).
+ */
+export function resolveVideoPlaces(
+  title: string,
+  description: string,
+  playlistCountries: PlaylistCountryRef[] = [],
+): PlaceEntry[] {
+  const places: PlaceEntry[] = [];
+
+  for (const country of playlistCountries) {
+    places.push({
+      type: "country",
+      countryCode: country.code,
+      countryName: country.name,
+      geocodeQuery: country.name,
+      confidence: 0.97,
+      source: "playlist",
+    });
+  }
+
+  if (playlistCountries.length > 0) {
+    for (const country of playlistCountries) {
+      places.push(...parseCitiesForAnchor(title, description, country.code));
+    }
+  } else {
+    places.push(...parseLocationsFromVideo(title, description));
+  }
+
+  return dedupePlaces(places).filter((p) => p.confidence >= MIN_LOCATION_CONFIDENCE);
 }
 
 /**
@@ -349,6 +433,7 @@ export function parseLocationsFromVideo(title: string, description = ""): PlaceE
       countryName: titleCountry.name,
       geocodeQuery: titleCountry.name,
       confidence: titleCountry.confidence,
+      source: "parser",
     });
   }
 
