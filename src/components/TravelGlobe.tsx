@@ -25,6 +25,9 @@ const TEXTURES = {
 };
 
 const FOCUS_ANIMATION_MS = 900;
+/** globe.gl başlangıç ~2.5; bundan fazla uzaklaşmayı engelle */
+const MAX_GLOBE_ALTITUDE = 2.6;
+const GLOBE_RADIUS = 100;
 
 export default function TravelGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,6 +130,7 @@ export default function TravelGlobe() {
         controls.rotateSpeed = 0.35;
         controls.enableDamping = true;
         controls.dampingFactor = 0.1;
+        controls.maxDistance = GLOBE_RADIUS * (1 + MAX_GLOBE_ALTITUDE);
         globeRef.current = globe;
 
         const handleResize = () => {
