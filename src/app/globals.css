@@ -194,11 +194,17 @@ body {
 @keyframes welcome-globe-float {
   0%,
   100% {
-    transform: translate(-50%, -50%) translateY(0);
+    transform: translateY(0);
   }
   50% {
-    transform: translate(-50%, -50%) translateY(-4px);
+    transform: translateY(-3px);
   }
+}
+
+.welcome-backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(40px) saturate(1.15);
+  -webkit-backdrop-filter: blur(40px) saturate(1.15);
 }
 
 .welcome-overlay-in {
@@ -217,7 +223,7 @@ body {
   animation: welcome-modal-out 0.28s ease-in forwards;
 }
 
-.welcome-globe-sphere {
+.welcome-globe-visual {
   animation: welcome-globe-float 5s ease-in-out infinite;
 }
 
@@ -248,7 +254,7 @@ body {
   .welcome-overlay-out,
   .welcome-modal-in,
   .welcome-modal-out,
-  .welcome-globe-sphere,
+  .welcome-globe-visual,
   .welcome-route,
   .welcome-pin,
   .welcome-pin-ring {
