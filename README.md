@@ -27,6 +27,8 @@ npm run dev
 
 Tam kurulum (Supabase, YouTube API, Vercel, cron): **[KURULUM.md](./KURULUM.md)**
 
+**Canlı site sync linkleri:** **[SYNC.md](./SYNC.md)** → [burak-durgun.vercel.app](https://burak-durgun.vercel.app)
+
 ## API
 
 | Endpoint | Açıklama |

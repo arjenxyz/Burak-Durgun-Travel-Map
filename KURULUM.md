@@ -305,7 +305,7 @@ CRON_SECRET
 Deploy bittikten sonra tarayıcıdan veya terminalden bir kez manuel sync tetikleyin:
 
 ```
-https://SIZIN-PROJE.vercel.app/api/sync?secret=CRON_SECRET_DEGERINIZ
+https://burak-durgun.vercel.app/api/sync?secret=CRON_SECRET_DEGERINIZ
 ```
 
 Başarılı yanıt:
@@ -349,7 +349,7 @@ Burak yeni video attığında haritanın otomatik güncellenmesi için periyodik
 | Alan | Değer |
 |------|-------|
 | **Title** | Burak Travel Map Sync |
-| **URL** | `https://SIZIN-PROJE.vercel.app/api/sync?secret=CRON_SECRET` |
+| **URL** | `https://burak-durgun.vercel.app/api/sync?secret=CRON_SECRET` |
 | **Schedule** | Every 6 hours (günde 4 kez) veya Every 3 hours |
 | **Request method** | GET |
 | **Enabled** | ✓ |
@@ -358,7 +358,7 @@ Burak yeni video attığında haritanın otomatik güncellenmesi için periyodik
 
 URL'de secret göstermek istemezseniz:
 
-- **URL:** `https://SIZIN-PROJE.vercel.app/api/sync`
+- **URL:** `https://burak-durgun.vercel.app/api/sync`
 - **Advanced** → **Headers:**
   - Key: `Authorization`
   - Value: `Bearer CRON_SECRET_DEGERINIZ`
@@ -414,10 +414,10 @@ YouTube'da haftada birkaç video atılıyorsa günde 4 kez fazlasıyla yeterli.
 
 ```bash
 # Harita verisi
-curl https://SIZIN-PROJE.vercel.app/api/map
+curl https://burak-durgun.vercel.app/api/map
 
 # Manuel sync (secret gerekli)
-curl "https://SIZIN-PROJE.vercel.app/api/sync?secret=CRON_SECRET"
+curl "https://burak-durgun.vercel.app/api/sync?secret=CRON_SECRET"
 ```
 
 ---
@@ -468,7 +468,7 @@ Geçici ağ sorunu veya YouTube erişim engeli. Birkaç dakika sonra tekrar dene
 **1. Tanı endpoint'ini açın:**
 
 ```
-https://SIZIN-PROJE.vercel.app/api/health
+https://burak-durgun.vercel.app/api/health
 ```
 
 Hangi kontrol kırmızıysa onu düzeltin.
@@ -485,7 +485,7 @@ Hangi kontrol kırmızıysa onu düzeltin.
 **3. Sync hata detayı:**
 
 ```
-https://SIZIN-PROJE.vercel.app/api/sync?secret=CRON_SECRET
+https://burak-durgun.vercel.app/api/sync?secret=CRON_SECRET
 ```
 
 Yanıtta `"error"` ve `"hint"` alanlarına bakın.
