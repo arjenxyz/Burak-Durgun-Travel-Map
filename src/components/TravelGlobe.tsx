@@ -236,47 +236,45 @@ export default function TravelGlobe() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
+        <div ref={containerRef} className="absolute inset-0 touch-none" />
+
+        {globeError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
+            <p className="text-red-400">{globeError}</p>
+          </div>
+        )}
+
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.12)_55%,rgba(9,9,11,0.45)_100%)]" />
+
+        {isEmpty && (
+          <div className="absolute inset-0 flex items-center justify-center px-4">
+            <div className="max-w-md rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
+              <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
+              <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
+            </div>
+          </div>
+        )}
+
         {data && data.countries.length > 0 && (
-          <aside className="glass-panel hidden w-60 shrink-0 border-r border-white/10 md:flex lg:w-64">
+          <div className="floating-panel panel-enter-left absolute bottom-3 left-3 top-3 z-30 hidden w-72 overflow-hidden md:flex lg:bottom-4 lg:left-4 lg:top-4 lg:w-80">
             <CountryList
               countries={data.countries}
               selectedCode={selection?.country_code}
               onSelect={selectCountry}
               className="w-full"
             />
-          </aside>
+          </div>
         )}
 
-        <div className="relative min-w-0 flex-1">
-          <div ref={containerRef} className="absolute inset-0 touch-none" />
-
-          {globeError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/90">
-              <p className="text-red-400">{globeError}</p>
-            </div>
-          )}
-
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(9,9,11,0.12)_55%,rgba(9,9,11,0.45)_100%)]" />
-
-          {isEmpty && (
-            <div className="absolute inset-0 flex items-center justify-center px-4">
-              <div className="max-w-md rounded-2xl border border-orange-500/30 bg-zinc-950/90 p-5 text-center backdrop-blur">
-                <p className="text-lg font-medium text-white">Henüz konum verisi yok</p>
-                <p className="mt-2 text-sm text-zinc-400">Sync çalıştırın.</p>
-              </div>
-            </div>
-          )}
-        </div>
-
         {selection && (
-          <aside className="glass-panel hidden w-80 shrink-0 border-l border-white/10 lg:w-96 md:flex">
+          <div className="floating-panel panel-enter-right absolute bottom-3 right-3 top-3 z-30 hidden w-[min(100%,20rem)] overflow-hidden md:flex lg:bottom-4 lg:right-4 lg:top-4 lg:w-96">
             <VideoPanel
               country={selection}
               onClose={() => setSelection(null)}
               variant="sidebar"
             />
-          </aside>
+          </div>
         )}
       </div>
 
