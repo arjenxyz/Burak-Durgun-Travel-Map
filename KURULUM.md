@@ -368,7 +368,16 @@ veya:
 - Key: `x-cron-secret`
 - Value: `CRON_SECRET_DEGERINIZ`
 
-### 9.4 Önerilen zamanlama
+### 9.4 Cron vs full sync
+
+| Yöntem | Ne zaman | Ne çeker |
+|--------|----------|----------|
+| **cron-job.org** → `/api/sync` | Otomatik, periyodik | RSS — son **15 video** (hızlı, Vercel-safe) |
+| **`npm run sync`** | İlk kurulum, yerel | YouTube API — **tüm geçmiş** (API key gerekir) |
+
+Yeni video cron ile bir sonraki çalışmada haritaya düşer. İlk kurulumda mutlaka yerelde `npm run sync` çalıştırın.
+
+### 9.5 Önerilen zamanlama
 
 | Sıklık | cron-job.org ifadesi | Ne zaman kullanılır |
 |--------|----------------------|---------------------|
@@ -378,7 +387,7 @@ veya:
 
 YouTube'da haftada birkaç video atılıyorsa günde 4 kez fazlasıyla yeterli.
 
-### 9.5 Cron loglarını izleme
+### 9.6 Cron loglarını izleme
 
 - cron-job.org dashboard → job'a tıkla → **History**
 - HTTP 200 + `{"ok":true,...}` = başarılı
@@ -453,6 +462,43 @@ Geçici ağ sorunu veya YouTube erişim engeli. Birkaç dakika sonra tekrar dene
 
 - Vercel'deki `CRON_SECRET` ile cron URL'deki `secret=` parametresi **birebir aynı** olmalı
 - Boşluk veya URL encoding sorunu olabilir — header yöntemini deneyin
+
+### cron-job.org 500 Internal Server Error
+
+**1. Tanı endpoint'ini açın:**
+
+```
+https://SIZIN-PROJE.vercel.app/api/health
+```
+
+Hangi kontrol kırmızıysa onu düzeltin.
+
+**2. En sık nedenler:**
+
+| Neden | Çözüm |
+|-------|--------|
+| Supabase migration çalıştırılmamış | SQL Editor'de `001_initial.sql` çalıştır |
+| `SUPABASE_SERVICE_ROLE_KEY` yanlış | **service_role** key kullanın, anon key değil |
+| Supabase env Vercel'de eksik | Tüm env'leri ekleyip **Redeploy** |
+| Eski kod: cron tüm kanalı API ile çekiyordu | Repoyu güncelleyin — cron artık sadece RSS (15 video) kullanır |
+
+**3. Sync hata detayı:**
+
+```
+https://SIZIN-PROJE.vercel.app/api/sync?secret=CRON_SECRET
+```
+
+Yanıtta `"error"` ve `"hint"` alanlarına bakın.
+
+**4. İlk full sync yerelde yapın:**
+
+Vercel cron hızlı güncelleme içindir. Tüm geçmiş için:
+
+```bash
+npm run sync
+```
+
+(`npm run sync` = full mode, YouTube API ile tüm videolar)
 
 ### Vercel'de sync timeout
 

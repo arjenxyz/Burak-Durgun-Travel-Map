@@ -9,18 +9,34 @@ export type SyncResult = {
   videosFetched: number;
   videosNew: number;
   locationsAdded: number;
+  locationsSkipped: number;
   source: "api" | "rss";
 };
 
-async function fetchVideos(channelId: string): Promise<{ videos: YouTubeVideoItem[]; source: "api" | "rss" }> {
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  if (apiKey) {
+export type SyncOptions = {
+  /** Cron/serverless: RSS only (fast). Local/full: API when key exists. */
+  mode?: "cron" | "full";
+};
+
+async function fetchVideos(
+  channelId: string,
+  mode: "cron" | "full",
+): Promise<{ videos: YouTubeVideoItem[]; source: "api" | "rss" }> {
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
+
+  if (mode === "full" && apiKey) {
     return { videos: await fetchAllVideosFromApi(apiKey, channelId), source: "api" };
   }
+
   return { videos: await fetchVideosFromRss(channelId), source: "rss" };
 }
 
-export async function runSync(): Promise<SyncResult> {
+function formatSupabaseError(error: { message?: string; code?: string; details?: string }): string {
+  return [error.message, error.code, error.details].filter(Boolean).join(" — ");
+}
+
+export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
+  const mode = options.mode ?? (process.env.SYNC_MODE === "full" ? "full" : "cron");
   const channelId = process.env.YOUTUBE_CHANNEL_ID ?? "UCfIOM2FhhCPc8ap9T_NoMjQ";
   const supabase = createServiceClient();
 
@@ -30,15 +46,18 @@ export async function runSync(): Promise<SyncResult> {
     .select("id")
     .single();
 
-  if (syncRunError) throw syncRunError;
+  if (syncRunError) {
+    throw new Error(`Supabase sync_runs insert failed: ${formatSupabaseError(syncRunError)}`);
+  }
 
   let videosFetched = 0;
   let videosNew = 0;
   let locationsAdded = 0;
+  let locationsSkipped = 0;
   let source: "api" | "rss" = "rss";
 
   try {
-    const fetched = await fetchVideos(channelId);
+    const fetched = await fetchVideos(channelId, mode);
     source = fetched.source;
     videosFetched = fetched.videos.length;
 
@@ -98,6 +117,7 @@ export async function runSync(): Promise<SyncResult> {
         );
 
         if (!locError) locationsAdded += 1;
+        else locationsSkipped += 1;
       }
 
       await supabase
@@ -117,7 +137,7 @@ export async function runSync(): Promise<SyncResult> {
       })
       .eq("id", syncRun.id);
 
-    return { videosFetched, videosNew, locationsAdded, source };
+    return { videosFetched, videosNew, locationsAdded, locationsSkipped, source };
   } catch (error) {
     await supabase
       .from("sync_runs")

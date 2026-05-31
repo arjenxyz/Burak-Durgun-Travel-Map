@@ -21,11 +21,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await runSync();
-    return NextResponse.json({ ok: true, ...result });
+    const result = await runSync({ mode: "cron" });
+    return NextResponse.json({ ok: true, mode: "cron", ...result });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Sync failed";
+    console.error("[sync]", message, error);
+
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Sync failed" },
+      {
+        ok: false,
+        error: message,
+        hint: "Check GET /api/health — common fixes: run Supabase migration SQL, set service_role key (not anon), redeploy Vercel env",
+      },
       { status: 500 },
     );
   }
