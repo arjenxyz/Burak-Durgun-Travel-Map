@@ -33,7 +33,6 @@ export default function TravelGlobe() {
   const [data, setData] = useState<MapData | null>(null);
   const [selection, setSelection] = useState<MapCountry | null>(null);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
-  const [autoRotate, setAutoRotate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globeError, setGlobeError] = useState<string | null>(null);
@@ -52,16 +51,9 @@ export default function TravelGlobe() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const controls = globeRef.current?.controls();
-    if (controls) controls.autoRotate = autoRotate;
-  }, [autoRotate]);
-
   function focusOnCountry(country: MapCountry) {
     const globe = globeRef.current;
     if (!globe) return;
-    globe.controls().autoRotate = false;
-    setAutoRotate(false);
     globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
   }
 
@@ -112,8 +104,6 @@ export default function TravelGlobe() {
             const p = point as GlobePoint;
             const country = data!.countries.find((c) => c.country_code === p.countryCode);
             if (!country) return;
-            globe.controls().autoRotate = false;
-            setAutoRotate(false);
             globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
             setSelection(country);
           })
@@ -128,13 +118,6 @@ export default function TravelGlobe() {
         controls.dampingFactor = 0.1;
         globeRef.current = globe;
 
-        const stopRotate = () => {
-          controls.autoRotate = false;
-          setAutoRotate(false);
-        };
-        container.addEventListener("mousedown", stopRotate);
-        container.addEventListener("touchstart", stopRotate, { passive: true });
-
         const handleResize = () => {
           if (!globeRef.current || !containerRef.current) return;
           globeRef.current
@@ -145,8 +128,6 @@ export default function TravelGlobe() {
         window.addEventListener("resize", handleResize);
         return () => {
           window.removeEventListener("resize", handleResize);
-          container.removeEventListener("mousedown", stopRotate);
-          container.removeEventListener("touchstart", stopRotate);
           globeRef.current?._destructor();
           globeRef.current = null;
           container.innerHTML = "";
@@ -230,33 +211,15 @@ export default function TravelGlobe() {
         />
       )}
 
-      <div className="absolute right-4 top-28 z-10 hidden md:flex md:flex-col md:gap-2">
-        <button
-          type="button"
-          onClick={() => setAutoRotate((v) => !v)}
-          className="rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 backdrop-blur hover:bg-white/5"
-        >
-          {autoRotate ? "Döndürmeyi durdur" : "Küreyi döndür"}
-        </button>
-      </div>
-
       {!panelOpen && data && data.countries.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-white/10 bg-zinc-950/95 px-3 py-2 backdrop-blur-md safe-bottom md:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-zinc-950/95 px-3 py-2 backdrop-blur-md safe-bottom md:hidden">
           <button
             type="button"
             onClick={() => setCountrySheetOpen(true)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-medium text-white active:bg-orange-400"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-medium text-white active:bg-orange-400"
           >
             <span>🌍</span>
             Ülkeler ({data.countries.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setAutoRotate((v) => !v)}
-            className="rounded-xl border border-white/10 px-4 py-3.5 text-sm text-zinc-200 active:bg-white/5"
-            aria-label={autoRotate ? "Döndürmeyi durdur" : "Küreyi döndür"}
-          >
-            {autoRotate ? "⏸" : "↻"}
           </button>
         </div>
       )}
