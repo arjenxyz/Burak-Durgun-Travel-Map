@@ -8,9 +8,11 @@ import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
 import { YOUTUBE_CHANNEL_URL, YoutubeIcon } from "@/components/YoutubeChannelLink";
 import {
-  createCountryFlagObject,
-} from "@/lib/globe/country-flag-object";
-import { type GlobeCountryMarker } from "@/lib/globe/country-flag-marker";
+  createFlagPinElement,
+  updateFlagPinSelection,
+  updateFlagPinSizes,
+  type GlobeCountryMarker,
+} from "@/lib/globe/country-flag-marker";
 import { getCountryFocusAltitude, type FocusZoomSource } from "@/lib/globe/country-focus-altitude";
 import {
   getVisitedPolygonCapColor,
@@ -89,6 +91,10 @@ export default function TravelGlobe() {
         selection?.country_code,
       ),
     );
+
+    if (containerRef.current) {
+      updateFlagPinSelection(containerRef.current, selection?.country_code);
+    }
   }, [selection]);
 
   useEffect(() => {
@@ -154,30 +160,32 @@ export default function TravelGlobe() {
               FOCUS_ANIMATION_MS,
             );
           })
-          .objectsData(markers)
-          .objectLat("lat")
-          .objectLng("lng")
-          .objectAltitude(0.012)
-          .objectFacesSurface(true)
-          .objectLabel("label")
-          .objectThreeObject((d) =>
-            createCountryFlagObject((d as GlobeCountryMarker).countryCode),
+          .htmlElementsData(markers)
+          .htmlLat("lat")
+          .htmlLng("lng")
+          .htmlAltitude(0.015)
+          .htmlTransitionDuration(0)
+          .htmlElement((d) =>
+            createFlagPinElement(d as GlobeCountryMarker, (countryCode) => {
+              const country = countryByCode.get(countryCode);
+              if (!country) return;
+              selectionRef.current = country;
+              setSelection(country);
+              globe.pointOfView(
+                {
+                  lat: country.lat,
+                  lng: country.lng,
+                  altitude: getCountryFocusAltitude(country.country_code, "globe"),
+                },
+                FOCUS_ANIMATION_MS,
+              );
+            }),
           )
-          .onObjectClick((obj: object) => {
-            const marker = obj as GlobeCountryMarker;
-            const country = data!.countries.find((c) => c.country_code === marker.countryCode);
-            if (!country) return;
-            selectionRef.current = country;
-            setSelection(country);
-            globe.pointOfView(
-              {
-                lat: country.lat,
-                lng: country.lng,
-                altitude: getCountryFocusAltitude(country.country_code, "globe"),
-              },
-              FOCUS_ANIMATION_MS,
-            );
-            setSelection(country);
+          .htmlElementVisibilityModifier((el, isVisible) => {
+            (el as HTMLElement).style.opacity = isVisible ? "1" : "0.12";
+          })
+          .onZoom(({ altitude }) => {
+            updateFlagPinSizes(container, altitude);
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
@@ -190,6 +198,8 @@ export default function TravelGlobe() {
         controls.dampingFactor = 0.1;
         controls.maxDistance = GLOBE_RADIUS * (1 + MAX_GLOBE_ALTITUDE);
         globeRef.current = globe;
+
+        updateFlagPinSizes(container, globe.pointOfView().altitude);
 
         loadVisitedCountryPolygons(data!.countries.map((c) => c.country_code))
           .then((polygons) => {

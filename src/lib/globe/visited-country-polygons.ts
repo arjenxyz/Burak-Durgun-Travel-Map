@@ -39,8 +39,8 @@ export function getVisitedPolygonCapColor(
   selectedCode?: string,
 ): string {
   if (!isoCode) return "rgba(249, 115, 22, 0)";
-  if (isoCode === selectedCode) return "rgba(249, 115, 22, 0.78)";
-  return "rgba(249, 115, 22, 0.52)";
+  if (isoCode === selectedCode) return "rgba(249, 115, 22, 0.55)";
+  return "rgba(249, 115, 22, 0.32)";
 }
 
 export const VISITED_POLYGON_SIDE_COLOR = "rgba(234, 88, 12, 0.28)";
