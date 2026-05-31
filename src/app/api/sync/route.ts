@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
           : result.videosPendingParse > 0
             ? `${result.videosPendingParse} video parse bekliyor — sync'i tekrar çalıştırın`
             : result.playlistsWithCountry
-              ? `Ülkeler oynatma listelerinden (${result.playlistsWithCountry} liste, ${result.videosFromPlaylists ?? 0} video). Yeniden eşlemek için reparse=1`
+              ? `${result.playlistsWithCountry}/${result.playlistsScanned} playlist eşleşti. Eşleşmeyen: ${result.unmatchedPlaylists?.length ?? 0}. reparse=1 ile yenile`
               : "Tüm videolar işlendi",
     });
   } catch (error) {

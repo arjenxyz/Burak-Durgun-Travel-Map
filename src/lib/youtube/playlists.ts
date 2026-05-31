@@ -1,4 +1,4 @@
-import { parseCountriesFromText } from "@/lib/locations/location-aliases";
+import { parseCountriesFromPlaylistTitle } from "@/lib/locations/location-aliases";
 
 type PlaylistListResponse = {
   items?: Array<{
@@ -20,10 +20,18 @@ export type PlaylistCountry = {
   name: string;
 };
 
+export type MatchedPlaylist = {
+  title: string;
+  countries: PlaylistCountry[];
+  videoCount: number;
+};
+
 export type PlaylistSyncStats = {
   playlistsScanned: number;
   playlistsWithCountry: number;
   videosMapped: number;
+  matchedPlaylists: MatchedPlaylist[];
+  unmatchedPlaylists: string[];
 };
 
 async function youtubeError(label: string, res: Response): Promise<never> {
@@ -77,6 +85,8 @@ export async function buildVideoCountryMapFromPlaylists(
     playlistsScanned: 0,
     playlistsWithCountry: 0,
     videosMapped: 0,
+    matchedPlaylists: [],
+    unmatchedPlaylists: [],
   };
 
   let pageToken: string | undefined;
@@ -100,11 +110,20 @@ export async function buildVideoCountryMapFromPlaylists(
 
       stats.playlistsScanned += 1;
 
-      const countries = parseCountriesFromText(title);
-      if (countries.length === 0) continue;
+      const countries = parseCountriesFromPlaylistTitle(title);
+      if (countries.length === 0) {
+        stats.unmatchedPlaylists.push(title);
+        continue;
+      }
 
       stats.playlistsWithCountry += 1;
       const videoIds = await fetchAllPlaylistVideoIds(apiKey, playlistId);
+
+      stats.matchedPlaylists.push({
+        title,
+        countries,
+        videoCount: videoIds.length,
+      });
 
       for (const videoId of videoIds) {
         const existing = map.get(videoId) ?? [];
