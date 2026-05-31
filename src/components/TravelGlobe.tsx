@@ -257,8 +257,10 @@ export default function TravelGlobe() {
       {data && data.countries.length > 0 && (
         <CountryList
           countries={data.countries}
-          selectedCode={selection?.country.country_code}
-          onSelect={(country) => selectCountry(country)}
+          cities={data.cities}
+          selectedCountryCode={selection?.country.country_code}
+          selectedCity={selection?.city}
+          onSelect={(country, city) => selectCountry(country, city)}
         />
       )}
 
@@ -282,7 +284,7 @@ export default function TravelGlobe() {
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-medium text-white active:bg-orange-400"
           >
             <span>🌍</span>
-            Ülkeler ({data.countries.length})
+            Konumlar ({data.countries.length})
           </button>
           <button
             type="button"
@@ -299,9 +301,11 @@ export default function TravelGlobe() {
         <MobileCountrySheet
           open={countrySheetOpen}
           countries={data.countries}
-          selectedCode={selection?.country.country_code}
+          cities={data.cities}
+          selectedCountryCode={selection?.country.country_code}
+          selectedCity={selection?.city}
           onClose={() => setCountrySheetOpen(false)}
-          onSelect={(country) => selectCountry(country)}
+          onSelect={(country, city) => selectCountry(country, city)}
         />
       )}
 
@@ -325,6 +329,7 @@ export default function TravelGlobe() {
           <p className="mt-1">
             <span className="inline-block h-2 w-2 rounded-full bg-sky-400" /> Şehir
           </p>
+          <p className="mt-2 text-zinc-500">Soldan ok ile şehirleri aç</p>
         </div>
       )}
     </div>
