@@ -7,19 +7,15 @@ import CountryList from "@/components/CountryList";
 import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
 import { YOUTUBE_CHANNEL_URL, YoutubeIcon } from "@/components/YoutubeChannelLink";
+import {
+  createCountryFlagElement,
+  markerSizeFromVideoCount,
+  type GlobeCountryMarker,
+} from "@/lib/globe/country-flag-marker";
 
 type MapData = {
   stats: MapStats;
   countries: MapCountry[];
-};
-
-type GlobePoint = {
-  lat: number;
-  lng: number;
-  size: number;
-  color: string;
-  label: string;
-  countryCode: string;
 };
 
 const TEXTURES = {
@@ -76,11 +72,10 @@ export default function TravelGlobe() {
 
         container.innerHTML = "";
 
-        const points: GlobePoint[] = data!.countries.map((c) => ({
+        const markers: GlobeCountryMarker[] = data!.countries.map((c) => ({
           lat: c.lat,
           lng: c.lng,
-          size: 0.55 + Math.min(c.video_count * 0.1, 1.2),
-          color: "#f97316",
+          size: markerSizeFromVideoCount(c.video_count),
           label: `${c.country_name} · ${c.video_count} video`,
           countryCode: c.country_code,
         }));
@@ -92,19 +87,20 @@ export default function TravelGlobe() {
           .showAtmosphere(true)
           .atmosphereColor("#3a228a")
           .atmosphereAltitude(0.15)
-          .pointsData(points)
-          .pointLat("lat")
-          .pointLng("lng")
-          .pointAltitude(0.03)
-          .pointRadius((d) => (d as GlobePoint).size * 0.5)
-          .pointColor("color")
-          .pointLabel("label")
-          .onPointClick((point: object) => {
-            const p = point as GlobePoint;
-            const country = data!.countries.find((c) => c.country_code === p.countryCode);
-            if (!country) return;
-            globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
-            setSelection(country);
+          .htmlElementsData(markers)
+          .htmlLat("lat")
+          .htmlLng("lng")
+          .htmlAltitude(0.03)
+          .htmlElement((d) =>
+            createCountryFlagElement(d as GlobeCountryMarker, (countryCode) => {
+              const country = data!.countries.find((c) => c.country_code === countryCode);
+              if (!country) return;
+              globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
+              setSelection(country);
+            }),
+          )
+          .htmlElementVisibilityModifier((el, isVisible) => {
+            (el as HTMLElement).style.opacity = isVisible ? "1" : "0.2";
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
