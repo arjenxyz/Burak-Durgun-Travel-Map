@@ -8,10 +8,9 @@ import MobileCountrySheet from "@/components/MobileCountrySheet";
 import VideoPanel from "@/components/VideoPanel";
 import { YOUTUBE_CHANNEL_URL, YoutubeIcon } from "@/components/YoutubeChannelLink";
 import {
-  createCountryFlagElement,
-  markerSizeFromVideoCount,
-  type GlobeCountryMarker,
-} from "@/lib/globe/country-flag-marker";
+  createCountryFlagObject,
+} from "@/lib/globe/country-flag-object";
+import { type GlobeCountryMarker } from "@/lib/globe/country-flag-marker";
 
 type MapData = {
   stats: MapStats;
@@ -75,7 +74,6 @@ export default function TravelGlobe() {
         const markers: GlobeCountryMarker[] = data!.countries.map((c) => ({
           lat: c.lat,
           lng: c.lng,
-          size: markerSizeFromVideoCount(c.video_count),
           label: `${c.country_name} · ${c.video_count} video`,
           countryCode: c.country_code,
         }));
@@ -87,20 +85,21 @@ export default function TravelGlobe() {
           .showAtmosphere(true)
           .atmosphereColor("#3a228a")
           .atmosphereAltitude(0.15)
-          .htmlElementsData(markers)
-          .htmlLat("lat")
-          .htmlLng("lng")
-          .htmlAltitude(0.03)
-          .htmlElement((d) =>
-            createCountryFlagElement(d as GlobeCountryMarker, (countryCode) => {
-              const country = data!.countries.find((c) => c.country_code === countryCode);
-              if (!country) return;
-              globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
-              setSelection(country);
-            }),
+          .objectsData(markers)
+          .objectLat("lat")
+          .objectLng("lng")
+          .objectAltitude(0.012)
+          .objectFacesSurface(true)
+          .objectLabel("label")
+          .objectThreeObject((d) =>
+            createCountryFlagObject((d as GlobeCountryMarker).countryCode),
           )
-          .htmlElementVisibilityModifier((el, isVisible) => {
-            (el as HTMLElement).style.opacity = isVisible ? "1" : "0.2";
+          .onObjectClick((obj: object) => {
+            const marker = obj as GlobeCountryMarker;
+            const country = data!.countries.find((c) => c.country_code === marker.countryCode);
+            if (!country) return;
+            globe.pointOfView({ lat: country.lat, lng: country.lng, altitude: 1.6 }, 800);
+            setSelection(country);
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
