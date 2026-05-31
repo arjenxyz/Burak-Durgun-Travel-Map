@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MapCity, MapCountry, MapStats } from "@/lib/supabase/client";
 import type { GlobeInstance } from "globe.gl";
+import VideoPanel from "@/components/VideoPanel";
 
 type MapData = {
   stats: MapStats;
@@ -18,6 +19,7 @@ type GlobePoint = {
   label: string;
   type: "country" | "city";
   countryCode: string;
+  cityName?: string;
 };
 
 const TEXTURES = {
@@ -26,11 +28,16 @@ const TEXTURES = {
   background: "https://unpkg.com/three-globe/example/img/night-sky.png",
 };
 
+type Selection = {
+  country: MapCountry;
+  city?: string;
+};
+
 export default function TravelGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeInstance | null>(null);
   const [data, setData] = useState<MapData | null>(null);
-  const [selected, setSelected] = useState<MapCountry | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [globeError, setGlobeError] = useState<string | null>(null);
@@ -80,6 +87,7 @@ export default function TravelGlobe() {
           label: `${c.city}, ${c.country_name} · ${c.video_count} video`,
           type: "city" as const,
           countryCode: c.country_code,
+          cityName: c.city,
         }));
 
         const points = [...countryPoints, ...cityPoints];
@@ -101,7 +109,13 @@ export default function TravelGlobe() {
           .onPointClick((point: object) => {
             const p = point as GlobePoint;
             const country = data!.countries.find((c) => c.country_code === p.countryCode);
-            if (country) setSelected(country);
+            if (!country) return;
+
+            if (p.type === "city") {
+              setSelection({ country, city: p.cityName });
+            } else {
+              setSelection({ country });
+            }
           })
           .width(container.clientWidth)
           .height(container.clientHeight);
@@ -211,35 +225,7 @@ export default function TravelGlobe() {
         </div>
       )}
 
-      {selected && (
-        <aside className="absolute bottom-6 left-6 z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-950/85 p-5 backdrop-blur">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-orange-400">Seçili ülke</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">{selected.country_name}</h2>
-              <p className="mt-1 text-sm text-zinc-400">
-                {selected.video_count} video · {selected.city_count} şehir
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              className="rounded-lg px-2 py-1 text-sm text-zinc-400 hover:bg-white/5 hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
-
-          <a
-            href={`https://www.youtube.com/@BurakDurgun/search?query=${encodeURIComponent(selected.country_name)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 inline-flex rounded-xl bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-400"
-          >
-            YouTube&apos;da videoları gör
-          </a>
-        </aside>
-      )}
+      {selection && <VideoPanel selection={selection} onClose={() => setSelection(null)} />}
 
       <div className="absolute bottom-6 right-6 z-10 rounded-xl border border-white/10 bg-zinc-950/70 px-4 py-3 text-xs text-zinc-300 backdrop-blur">
         <p>

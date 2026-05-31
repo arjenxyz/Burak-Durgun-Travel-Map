@@ -8,23 +8,25 @@ import type { YouTubeVideoItem } from "@/lib/youtube/types";
 export type SyncResult = {
   videosFetched: number;
   videosNew: number;
+  videosParsed: number;
+  videosPendingParse: number;
   locationsAdded: number;
   locationsSkipped: number;
   source: "api" | "rss";
 };
 
 export type SyncOptions = {
-  /** Cron/serverless: RSS only (fast). Local/full: API when key exists. */
+  /** full = parse all unparsed. cron = parse batch only (metadata always full when API key set). */
   mode?: "cron" | "full";
+  parseLimit?: number;
 };
 
-async function fetchVideos(
-  channelId: string,
-  mode: "cron" | "full",
-): Promise<{ videos: YouTubeVideoItem[]; source: "api" | "rss" }> {
+const UPSERT_CHUNK = 100;
+
+async function fetchAllVideos(channelId: string): Promise<{ videos: YouTubeVideoItem[]; source: "api" | "rss" }> {
   const apiKey = process.env.YOUTUBE_API_KEY?.trim();
 
-  if (mode === "full" && apiKey) {
+  if (apiKey) {
     try {
       return { videos: await fetchAllVideosFromApi(apiKey, channelId), source: "api" };
     } catch (error) {
@@ -42,8 +44,84 @@ function formatSupabaseError(error: { message?: string; code?: string; details?:
   return [error.message, error.code, error.details].filter(Boolean).join(" — ");
 }
 
+function getParseLimit(mode: "cron" | "full", override?: number): number {
+  if (override !== undefined) return override;
+  if (mode === "full") return Number.POSITIVE_INFINITY;
+  const fromEnv = Number(process.env.SYNC_PARSE_BATCH_SIZE ?? 50);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : 50;
+}
+
+async function upsertVideoBatch(
+  supabase: ReturnType<typeof createServiceClient>,
+  videos: YouTubeVideoItem[],
+  existingIds: Set<string>,
+): Promise<number> {
+  let videosNew = 0;
+
+  for (let i = 0; i < videos.length; i += UPSERT_CHUNK) {
+    const chunk = videos.slice(i, i + UPSERT_CHUNK);
+    const rows = chunk.map((video) => ({
+      youtube_id: video.youtubeId,
+      title: video.title,
+      description: video.description,
+      thumbnail_url: video.thumbnailUrl,
+      published_at: video.publishedAt,
+      video_url: video.videoUrl,
+      updated_at: new Date().toISOString(),
+    }));
+
+    for (const video of chunk) {
+      if (!existingIds.has(video.youtubeId)) videosNew += 1;
+    }
+
+    const { error } = await supabase.from("videos").upsert(rows, { onConflict: "youtube_id" });
+    if (error) throw new Error(`Video upsert failed: ${formatSupabaseError(error)}`);
+  }
+
+  return videosNew;
+}
+
+async function parseVideo(
+  supabase: ReturnType<typeof createServiceClient>,
+  video: { id: string; title: string; description: string | null },
+): Promise<{ added: number; skipped: number }> {
+  let added = 0;
+  let skipped = 0;
+
+  const places = parseLocationsFromVideo(video.title, video.description ?? "");
+  if (places.length === 0) {
+    await supabase.from("videos").update({ parsed_at: new Date().toISOString() }).eq("id", video.id);
+    return { added, skipped };
+  }
+
+  const geocoded = await geocodePlaces(places);
+
+  for (const place of geocoded) {
+    const { error: locError } = await supabase.from("video_locations").upsert(
+      {
+        video_id: video.id,
+        country_code: place.countryCode,
+        country_name: place.countryName,
+        city: place.city ?? null,
+        lat: place.lat,
+        lng: place.lng,
+        confidence: place.confidence,
+        source: "parser",
+      },
+      { onConflict: "video_id,country_code,city", ignoreDuplicates: false },
+    );
+
+    if (!locError) added += 1;
+    else skipped += 1;
+  }
+
+  await supabase.from("videos").update({ parsed_at: new Date().toISOString() }).eq("id", video.id);
+  return { added, skipped };
+}
+
 export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
   const mode = options.mode ?? (process.env.SYNC_MODE === "full" ? "full" : "cron");
+  const parseLimit = getParseLimit(mode, options.parseLimit);
   const channelId = process.env.YOUTUBE_CHANNEL_ID ?? "UCfIOM2FhhCPc8ap9T_NoMjQ";
   const supabase = createServiceClient();
 
@@ -59,79 +137,52 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
 
   let videosFetched = 0;
   let videosNew = 0;
+  let videosParsed = 0;
+  let videosPendingParse = 0;
   let locationsAdded = 0;
   let locationsSkipped = 0;
   let source: "api" | "rss" = "rss";
 
   try {
-    const fetched = await fetchVideos(channelId, mode);
+    const fetched = await fetchAllVideos(channelId);
     source = fetched.source;
     videosFetched = fetched.videos.length;
 
-    const { data: existingVideos } = await supabase.from("videos").select("youtube_id, parsed_at");
-    const existingMap = new Map((existingVideos ?? []).map((v) => [v.youtube_id, v.parsed_at]));
+    const { data: existingVideos, error: existingError } = await supabase
+      .from("videos")
+      .select("youtube_id");
 
-    for (const video of fetched.videos) {
-      const isNew = !existingMap.has(video.youtubeId);
+    if (existingError) throw new Error(formatSupabaseError(existingError));
 
-      const { data: upserted, error: videoError } = await supabase
-        .from("videos")
-        .upsert(
-          {
-            youtube_id: video.youtubeId,
-            title: video.title,
-            description: video.description,
-            thumbnail_url: video.thumbnailUrl,
-            published_at: video.publishedAt,
-            video_url: video.videoUrl,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "youtube_id" },
-        )
-        .select("id, youtube_id, parsed_at")
-        .single();
+    const existingIds = new Set((existingVideos ?? []).map((v) => v.youtube_id));
+    videosNew = await upsertVideoBatch(supabase, fetched.videos, existingIds);
 
-      if (videoError || !upserted) continue;
-      if (isNew) videosNew += 1;
+    let unparsedQuery = supabase
+      .from("videos")
+      .select("id, title, description")
+      .is("parsed_at", null)
+      .order("published_at", { ascending: false });
 
-      const needsParse = isNew || !upserted.parsed_at;
-      if (!needsParse) continue;
-
-      const places = parseLocationsFromVideo(video.title, video.description);
-      if (places.length === 0) {
-        await supabase
-          .from("videos")
-          .update({ parsed_at: new Date().toISOString() })
-          .eq("id", upserted.id);
-        continue;
-      }
-
-      const geocoded = await geocodePlaces(places);
-
-      for (const place of geocoded) {
-        const { error: locError } = await supabase.from("video_locations").upsert(
-          {
-            video_id: upserted.id,
-            country_code: place.countryCode,
-            country_name: place.countryName,
-            city: place.city ?? null,
-            lat: place.lat,
-            lng: place.lng,
-            confidence: place.confidence,
-            source: "parser",
-          },
-          { onConflict: "video_id,country_code,city", ignoreDuplicates: false },
-        );
-
-        if (!locError) locationsAdded += 1;
-        else locationsSkipped += 1;
-      }
-
-      await supabase
-        .from("videos")
-        .update({ parsed_at: new Date().toISOString() })
-        .eq("id", upserted.id);
+    if (Number.isFinite(parseLimit)) {
+      unparsedQuery = unparsedQuery.limit(parseLimit);
     }
+
+    const { data: toParse, error: parseQueryError } = await unparsedQuery;
+    if (parseQueryError) throw new Error(formatSupabaseError(parseQueryError));
+
+    for (const video of toParse ?? []) {
+      const result = await parseVideo(supabase, video);
+      locationsAdded += result.added;
+      locationsSkipped += result.skipped;
+      videosParsed += 1;
+    }
+
+    const { count: pendingCount } = await supabase
+      .from("videos")
+      .select("id", { count: "exact", head: true })
+      .is("parsed_at", null);
+
+    videosPendingParse = pendingCount ?? 0;
 
     await supabase
       .from("sync_runs")
@@ -144,7 +195,15 @@ export async function runSync(options: SyncOptions = {}): Promise<SyncResult> {
       })
       .eq("id", syncRun.id);
 
-    return { videosFetched, videosNew, locationsAdded, locationsSkipped, source };
+    return {
+      videosFetched,
+      videosNew,
+      videosParsed,
+      videosPendingParse,
+      locationsAdded,
+      locationsSkipped,
+      source,
+    };
   } catch (error) {
     await supabase
       .from("sync_runs")

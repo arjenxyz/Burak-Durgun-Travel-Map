@@ -22,7 +22,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await runSync({ mode: "cron" });
-    return NextResponse.json({ ok: true, mode: "cron", ...result });
+    return NextResponse.json({
+      ok: true,
+      mode: "cron",
+      ...result,
+      hint:
+        result.videosPendingParse > 0
+          ? `${result.videosPendingParse} video parse bekliyor — cron tekrar çalıştıkça tamamlanır veya npm run sync kullanın`
+          : "Tüm videolar işlendi",
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sync failed";
     console.error("[sync]", message, error);

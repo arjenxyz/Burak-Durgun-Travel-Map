@@ -71,3 +71,13 @@ export type MapStats = {
   totalVideos: number;
   lastSync: string | null;
 };
+
+export type CountryVideo = {
+  id: string;
+  youtube_id: string;
+  title: string;
+  thumbnail_url: string | null;
+  published_at: string;
+  video_url: string;
+  cities: string[];
+};

@@ -28,8 +28,8 @@ export async function GET() {
   checks.youtube_api_key = {
     ok: true,
     detail: process.env.YOUTUBE_API_KEY?.trim()
-      ? "set — used only for npm run sync (full history)"
-      : "not set — cron uses RSS (last 15 videos)",
+      ? "set — tüm kanal geçmişi sync edilir (parse batch halinde)"
+      : "not set — yalnızca RSS (son 15 video)",
   };
 
   let supabaseOk = false;

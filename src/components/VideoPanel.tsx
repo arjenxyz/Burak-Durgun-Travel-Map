@@ -1,0 +1,133 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import type { MapCountry } from "@/lib/supabase/client";
+import type { CountryVideo } from "@/lib/supabase/client";
+
+type Selection = {
+  country: MapCountry;
+  city?: string;
+};
+
+type Props = {
+  selection: Selection;
+  onClose: () => void;
+};
+
+export default function VideoPanel({ selection, onClose }: Props) {
+  const [videos, setVideos] = useState<CountryVideo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const { country, city } = selection;
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    const params = new URLSearchParams();
+    if (city) params.set("city", city);
+
+    const query = params.toString();
+    const url = `/api/countries/${country.country_code}/videos${query ? `?${query}` : ""}`;
+
+    fetch(url)
+      .then(async (res) => {
+        const json = (await res.json()) as { videos?: CountryVideo[]; error?: string };
+        if (!res.ok) throw new Error(json.error ?? "Videolar yüklenemedi");
+        return json.videos ?? [];
+      })
+      .then(setVideos)
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [country.country_code, city]);
+
+  return (
+    <aside className="absolute bottom-0 left-0 right-0 z-20 flex max-h-[55vh] flex-col border-t border-white/10 bg-zinc-950/95 backdrop-blur md:bottom-6 md:left-6 md:right-auto md:max-h-[calc(100vh-8rem)] md:w-full md:max-w-md md:rounded-2xl md:border">
+      <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wider text-orange-400">
+            {city ? "Şehir" : "Ülke"}
+          </p>
+          <h2 className="truncate text-lg font-semibold text-white">
+            {city ? `${city}, ${country.country_name}` : country.country_name}
+          </h2>
+          <p className="mt-0.5 text-sm text-zinc-400">
+            {loading ? "Yükleniyor..." : `${videos.length} video`}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-lg px-2 py-1 text-sm text-zinc-400 hover:bg-white/5 hover:text-white"
+          aria-label="Kapat"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3">
+        {error && <p className="px-2 py-4 text-center text-sm text-red-400">{error}</p>}
+
+        {!error && !loading && videos.length === 0 && (
+          <p className="px-2 py-8 text-center text-sm text-zinc-500">
+            Bu konum için henüz video yok. Sync çalıştırın.
+          </p>
+        )}
+
+        <ul className="space-y-2">
+          {videos.map((video) => (
+            <li key={video.id}>
+              <a
+                href={video.video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex gap-3 rounded-xl border border-transparent p-2 transition hover:border-white/10 hover:bg-white/5"
+              >
+                <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+                  {video.thumbnail_url ? (
+                    <Image
+                      src={video.thumbnail_url}
+                      alt=""
+                      fill
+                      className="object-cover transition group-hover:scale-105"
+                      sizes="112px"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-zinc-500">
+                      Video
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-sm font-medium leading-snug text-white group-hover:text-orange-300">
+                    {video.title}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {formatDate(video.published_at)}
+                    {video.cities.length > 0 && (
+                      <span className="text-zinc-400"> · {video.cities.join(", ")}</span>
+                    )}
+                  </p>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </aside>
+  );
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
