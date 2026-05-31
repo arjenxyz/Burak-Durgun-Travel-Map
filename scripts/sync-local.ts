@@ -23,7 +23,7 @@ console.log(
 );
 console.log("⏳ Sync başlıyor...\n");
 
-runSync({ mode: "full" })
+runSync({ mode: "full", reparseAll: process.env.REPARSE === "1" })
   .then((result) => {
     console.log("\n✅ Sync complete:", result);
     process.exit(0);

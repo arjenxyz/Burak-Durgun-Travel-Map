@@ -2,7 +2,9 @@ import {
   COUNTRY_ALIASES_DATA,
   COUNTRY_KEYS_SORTED,
   ISO2_COUNTRY,
+  type CountryDef,
 } from "./country-aliases-data";
+import { getCountryDisplayName } from "./country-display-names";
 
 export type PlaceEntry = {
   type: "country";
@@ -51,10 +53,23 @@ const MIN_COUNTRY_KEY_LENGTH = 3;
 
 function normalizeKey(input: string): string {
   return input
-    .toLowerCase()
+    .toLocaleLowerCase("tr")
+    .replace(/ı/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]/g, "");
+}
+
+function toDisplayCountry(country: CountryDef) {
+  return {
+    code: country.code,
+    name: getCountryDisplayName(country.code, country.name),
+  };
 }
 
 function extractHashtags(text: string): string[] {
@@ -71,7 +86,14 @@ function parseTitleCountry(title: string) {
     const match = title.match(pattern);
     if (!match?.[1]) continue;
     const country = resolveCountry(match[1]);
-    if (country) return { ...country, confidence: 0.95 };
+    if (country) {
+      return {
+        code: country.code,
+        name: getCountryDisplayName(country.code, country.name),
+        geocodeQuery: country.name,
+        confidence: 0.95,
+      };
+    }
   }
   return null;
 }
@@ -102,7 +124,7 @@ function addCountryFromTag(
   places.push({
     type: "country",
     countryCode: country.code,
-    countryName: country.name,
+    countryName: getCountryDisplayName(country.code, country.name),
     geocodeQuery: country.name,
     confidence,
     source: "parser",
@@ -122,7 +144,7 @@ export function parseCountriesFromText(text: string): Array<{ code: string; name
     const country = COUNTRY_ALIASES[key];
     if (seen.has(country.code)) continue;
     seen.add(country.code);
-    found.push({ code: country.code, name: country.name });
+    found.push(toDisplayCountry(country));
   }
 
   return found;
@@ -152,7 +174,7 @@ export function parseCountriesFromPlaylistTitle(title: string): Array<{ code: st
     for (const token of segment.split(/\s+/).filter(Boolean)) {
       const upper = token.toUpperCase();
       if (/^[A-Z]{2}$/.test(upper) && ISO2_COUNTRY[upper]) {
-        const country = ISO2_COUNTRY[upper];
+        const country = toDisplayCountry(ISO2_COUNTRY[upper]);
         found.set(country.code, country);
       }
     }
@@ -173,7 +195,7 @@ export function resolveVideoPlaces(
     return playlistCountries.map((country) => ({
       type: "country" as const,
       countryCode: country.code,
-      countryName: country.name,
+      countryName: getCountryDisplayName(country.code, country.name),
       geocodeQuery: country.name,
       confidence: 0.97,
       source: "playlist" as const,
@@ -194,7 +216,7 @@ export function parseLocationsFromVideo(title: string, description = ""): PlaceE
       type: "country",
       countryCode: titleCountry.code,
       countryName: titleCountry.name,
-      geocodeQuery: titleCountry.name,
+      geocodeQuery: titleCountry.geocodeQuery,
       confidence: titleCountry.confidence,
       source: "parser",
     });
