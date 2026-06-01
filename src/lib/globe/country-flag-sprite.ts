@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { countryFlagUrl } from "@/lib/country-flag-url";
+import { getCountrySize } from "@/lib/globe/country-focus-altitude";
 
 export type GlobeCountryMarker = {
   lat: number;
@@ -10,9 +11,28 @@ export type GlobeCountryMarker = {
 };
 
 const TEXTURE_SIZE = 64;
-/** Küre yarıçapına (~100) göre okunabilir yuvarlak bayrak */
-const DISC_RADIUS = 1.85;
-const LOCKED_DISC_RADIUS = 1.45;
+export const GLOBE_SURFACE_RADIUS = 100;
+
+const DISC_RADIUS = 1.52;
+const LOCKED_DISC_RADIUS = 1.15;
+
+const SIZE_SCALE = {
+  extraLarge: 1.04,
+  large: 0.96,
+  medium: 0.88,
+  small: 0.68,
+  tiny: 0.54,
+} as const;
+
+export function getMarkerDiscRadius(countryCode: string, locked?: boolean): number {
+  const size = getCountrySize(countryCode);
+  const base = locked ? LOCKED_DISC_RADIUS : DISC_RADIUS;
+  return base * SIZE_SCALE[size];
+}
+
+export function getMarkerAngularRadius(countryCode: string, locked?: boolean): number {
+  return getMarkerDiscRadius(countryCode, locked) / GLOBE_SURFACE_RADIUS;
+}
 
 const textureCache = new Map<string, THREE.Texture>();
 
@@ -162,7 +182,7 @@ export function createFlagDiscObject(marker: GlobeCountryMarker | string): THREE
   const countryCode = typeof marker === "string" ? marker : marker.countryCode;
   const locked = typeof marker === "object" && marker.locked === true;
   const key = countryCode.toUpperCase();
-  const radius = locked ? LOCKED_DISC_RADIUS : DISC_RADIUS;
+  const radius = getMarkerDiscRadius(key, locked);
   const geometry = new THREE.CircleGeometry(radius, 32);
   const material = new THREE.MeshBasicMaterial({
     map: getRoundFlagTexture(key, locked),

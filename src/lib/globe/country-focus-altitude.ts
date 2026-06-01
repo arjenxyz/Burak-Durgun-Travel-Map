@@ -16,13 +16,14 @@ const SMALL = new Set([
   "MD", "AM", "GE", "AZ", "CY", "QA", "BH", "KW", "SG", "LU", "MT", "EE", "LV",
   "LT", "CH", "AT", "CZ", "HU", "PT", "GR", "IE", "DK", "JO", "PS", "TN", "CR",
   "PA", "DO", "HT", "CU", "GT", "HN", "SV", "NI", "EC", "UY", "PY", "KG", "TJ",
+  "XK", "LU", "LI", "AD", "SM", "MC", "VA",
 ]);
 
 const TINY = new Set(["MC", "VA", "SM", "AD", "LI", "MV", "BH", "SG", "MT"]);
 
 type CountrySize = "extraLarge" | "large" | "medium" | "small" | "tiny";
 
-function getCountrySize(countryCode: string): CountrySize {
+export function getCountrySize(countryCode: string): CountrySize {
   const code = countryCode.toUpperCase();
   if (EXTRA_LARGE.has(code)) return "extraLarge";
   if (LARGE.has(code)) return "large";
