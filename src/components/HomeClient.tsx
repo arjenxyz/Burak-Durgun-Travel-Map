@@ -13,8 +13,14 @@ const TravelGlobe = dynamic(() => import("@/components/TravelGlobe"), {
 
 export default function HomeClient() {
   return (
-    <main className="fixed inset-0 h-dvh w-full overflow-hidden bg-zinc-950 safe-top">
-      <TravelGlobe />
-    </main>
+    <>
+      <div className="app-edge-fill" aria-hidden="true">
+        <div className="app-edge-fill__top" />
+        <div className="app-edge-fill__bottom" />
+      </div>
+      <main className="fixed inset-0 z-[1] h-dvh w-full overflow-hidden bg-zinc-950 safe-top">
+        <TravelGlobe />
+      </main>
+    </>
   );
 }

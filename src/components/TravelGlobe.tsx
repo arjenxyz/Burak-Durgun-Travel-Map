@@ -122,6 +122,7 @@ export default function TravelGlobe() {
         if (!mounted || !container) return;
 
         const globe = new Globe(container, { animateIn: true })
+          .backgroundColor("#09090b")
           .globeImageUrl(TEXTURES.globe)
           .bumpImageUrl(TEXTURES.bump)
           .backgroundImageUrl(TEXTURES.background)

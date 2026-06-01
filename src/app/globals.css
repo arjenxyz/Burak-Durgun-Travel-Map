@@ -11,6 +11,8 @@
 
 html {
   height: 100%;
+  color-scheme: dark;
+  background: var(--background);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -19,7 +21,34 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   min-height: 100dvh;
+  min-height: 100svh;
   overscroll-behavior: none;
+}
+
+/* Android/iOS alt sistem çubuğu — safe area koyu doldur */
+.app-edge-fill {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-edge-fill__top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-top);
+  background: var(--background);
+}
+
+.app-edge-fill__bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: max(var(--safe-bottom), env(keyboard-inset-height, 0px));
+  background: var(--background);
 }
 
 .safe-top {
