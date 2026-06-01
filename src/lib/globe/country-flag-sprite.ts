@@ -11,8 +11,8 @@ export type GlobeCountryMarker = {
 
 const TEXTURE_SIZE = 64;
 /** Küre yarıçapına (~100) göre okunabilir yuvarlak bayrak */
-const DISC_RADIUS = 2.2;
-const LOCKED_DISC_RADIUS = 1.75;
+const DISC_RADIUS = 1.85;
+const LOCKED_DISC_RADIUS = 1.45;
 
 const textureCache = new Map<string, THREE.Texture>();
 

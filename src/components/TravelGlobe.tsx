@@ -14,8 +14,10 @@ import {
 } from "@/lib/globe/country-flag-sprite";
 import { getCountryFocusAltitude, type FocusZoomSource } from "@/lib/globe/country-focus-altitude";
 import { getCountryDisplayName } from "@/lib/locations/country-display-names";
+import { spreadGlobeMarkers } from "@/lib/globe/spread-globe-markers";
 import {
   getVisitedPolygonCapColor,
+  loadCountryLabelPoints,
   loadUnvisitedCountryMarkers,
   loadVisitedCountryPolygons,
   VISITED_POLYGON_SIDE_COLOR,
@@ -109,20 +111,26 @@ export default function TravelGlobe() {
 
         container.innerHTML = "";
 
-        const visitedMarkers: GlobeCountryMarker[] = data!.countries.map((c) => ({
-          lat: c.lat,
-          lng: c.lng,
-          label: `${c.country_name} · ${c.video_count} video`,
-          countryCode: c.country_code,
-        }));
-
-        const unvisitedMarkers = await loadUnvisitedCountryMarkers(
-          data!.countries.map((c) => c.country_code),
-          getCountryDisplayName,
-        );
+        const [unvisitedMarkers, labelPoints] = await Promise.all([
+          loadUnvisitedCountryMarkers(
+            data!.countries.map((c) => c.country_code),
+            getCountryDisplayName,
+          ),
+          loadCountryLabelPoints(),
+        ]);
         if (!mounted || !container) return;
 
-        const markers: GlobeCountryMarker[] = [...unvisitedMarkers, ...visitedMarkers];
+        const visitedMarkers: GlobeCountryMarker[] = data!.countries.map((c) => {
+          const label = labelPoints.get(c.country_code.toUpperCase());
+          return {
+            lat: label?.lat ?? c.lat,
+            lng: label?.lng ?? c.lng,
+            label: `${c.country_name} · ${c.video_count} video`,
+            countryCode: c.country_code,
+          };
+        });
+
+        const markers = spreadGlobeMarkers([...unvisitedMarkers, ...visitedMarkers]);
 
         const countryByCode = new Map(
           data!.countries.map((country) => [country.country_code, country]),

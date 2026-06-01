@@ -46,6 +46,28 @@ export type UnvisitedCountryMarker = {
   locked: true;
 };
 
+export type CountryLabelPoint = {
+  lat: number;
+  lng: number;
+};
+
+export async function loadCountryLabelPoints(): Promise<Map<string, CountryLabelPoint>> {
+  const geojson = await loadCountryGeoJson();
+  const byCode = pickCountryFeatureByIso(geojson.features as VisitedCountryPolygon[]);
+  const points = new Map<string, CountryLabelPoint>();
+
+  for (const [iso, feature] of byCode) {
+    const lat = feature.properties?.LABEL_Y;
+    const lng = feature.properties?.LABEL_X;
+    if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      continue;
+    }
+    points.set(iso, { lat, lng });
+  }
+
+  return points;
+}
+
 function pickCountryFeatureByIso(
   features: VisitedCountryPolygon[],
 ): Map<string, VisitedCountryPolygon> {
