@@ -4,6 +4,10 @@ const COUNTRIES_GEOJSON_URL =
 type CountryPolygonProperties = {
   ISO_A2?: string;
   ADMIN?: string;
+  NAME_TR?: string;
+  LABEL_X?: number;
+  LABEL_Y?: number;
+  HOMEPART?: number;
 };
 
 export type VisitedCountryPolygon = GeoJSON.Feature & {
@@ -32,6 +36,71 @@ export async function loadVisitedCountryPolygons(
     const iso = feature.properties?.ISO_A2?.toUpperCase();
     return iso && iso !== "-99" && visited.has(iso);
   });
+}
+
+export type UnvisitedCountryMarker = {
+  lat: number;
+  lng: number;
+  label: string;
+  countryCode: string;
+  locked: true;
+};
+
+function pickCountryFeatureByIso(
+  features: VisitedCountryPolygon[],
+): Map<string, VisitedCountryPolygon> {
+  const byCode = new Map<string, VisitedCountryPolygon>();
+
+  for (const feature of features) {
+    const iso = feature.properties?.ISO_A2?.toUpperCase();
+    if (!iso || iso === "-99") continue;
+
+    const existing = byCode.get(iso);
+    if (!existing) {
+      byCode.set(iso, feature);
+      continue;
+    }
+
+    const isHomeland = feature.properties?.HOMEPART === 1;
+    const existingIsHomeland = existing.properties?.HOMEPART === 1;
+    if (isHomeland && !existingIsHomeland) {
+      byCode.set(iso, feature);
+    }
+  }
+
+  return byCode;
+}
+
+export async function loadUnvisitedCountryMarkers(
+  visitedCountryCodes: string[],
+  getDisplayName: (code: string, fallback?: string) => string,
+): Promise<UnvisitedCountryMarker[]> {
+  const visited = new Set(visitedCountryCodes.map((code) => code.toUpperCase()));
+  const geojson = await loadCountryGeoJson();
+  const byCode = pickCountryFeatureByIso(geojson.features as VisitedCountryPolygon[]);
+
+  const markers: UnvisitedCountryMarker[] = [];
+
+  for (const [iso, feature] of byCode) {
+    if (visited.has(iso)) continue;
+
+    const lat = feature.properties?.LABEL_Y;
+    const lng = feature.properties?.LABEL_X;
+    if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      continue;
+    }
+
+    const fallbackName = feature.properties?.NAME_TR ?? feature.properties?.ADMIN;
+    markers.push({
+      lat,
+      lng,
+      countryCode: iso,
+      label: getDisplayName(iso, fallbackName),
+      locked: true,
+    });
+  }
+
+  return markers.sort((a, b) => a.label.localeCompare(b.label, "tr"));
 }
 
 export function getVisitedPolygonCapColor(

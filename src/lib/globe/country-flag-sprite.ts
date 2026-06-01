@@ -6,11 +6,13 @@ export type GlobeCountryMarker = {
   lng: number;
   label: string;
   countryCode: string;
+  locked?: boolean;
 };
 
 const TEXTURE_SIZE = 64;
 /** Küre yarıçapına (~100) göre okunabilir yuvarlak bayrak */
 const DISC_RADIUS = 2.2;
+const LOCKED_DISC_RADIUS = 1.75;
 
 const textureCache = new Map<string, THREE.Texture>();
 
@@ -57,19 +59,68 @@ function drawRoundFlagCanvas(img: HTMLImageElement | null, code: string): HTMLCa
   return canvas;
 }
 
-function getRoundFlagTexture(countryCode: string): THREE.Texture {
-  const key = countryCode.toUpperCase();
+function drawLockIcon(ctx: CanvasRenderingContext2D, center: number, size: number) {
+  const bodyW = size * 0.52;
+  const bodyH = size * 0.38;
+  const bodyX = center - bodyW / 2;
+  const bodyY = center + size * 0.02;
+  const shackleR = bodyW * 0.34;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = Math.max(2, size * 0.07);
+  ctx.lineCap = "round";
+
+  ctx.beginPath();
+  ctx.arc(center, bodyY - bodyH * 0.15, shackleR, Math.PI, 0);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.roundRect(bodyX, bodyY - bodyH * 0.05, bodyW, bodyH, bodyW * 0.12);
+  ctx.fill();
+}
+
+function drawLockedRoundFlagCanvas(img: HTMLImageElement | null, code: string): HTMLCanvasElement {
+  const canvas = drawRoundFlagCanvas(img, code);
+  const ctx = canvas.getContext("2d")!;
+  const radius = TEXTURE_SIZE / 2;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(radius, radius, radius - 4, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = "rgba(9, 9, 11, 0.52)";
+  ctx.fillRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(radius, radius, radius - 4, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(161, 161, 170, 0.85)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  drawLockIcon(ctx, radius, TEXTURE_SIZE * 0.34);
+  return canvas;
+}
+
+function textureCacheKey(countryCode: string, locked: boolean) {
+  return locked ? `${countryCode.toUpperCase()}:locked` : countryCode.toUpperCase();
+}
+
+function getRoundFlagTexture(countryCode: string, locked = false): THREE.Texture {
+  const key = textureCacheKey(countryCode, locked);
   let texture = textureCache.get(key);
   if (texture) return texture;
 
-  const canvas = drawRoundFlagCanvas(null, key);
+  const code = countryCode.toUpperCase();
+  const canvas = locked ? drawLockedRoundFlagCanvas(null, code) : drawRoundFlagCanvas(null, code);
   texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   textureCache.set(key, texture);
 
-  loadImage(countryFlagUrl(key, 80))
+  loadImage(countryFlagUrl(code, 80))
     .then((img) => {
-      const nextCanvas = drawRoundFlagCanvas(img, key);
+      const nextCanvas = locked ? drawLockedRoundFlagCanvas(img, code) : drawRoundFlagCanvas(img, code);
       texture!.image = nextCanvas;
       texture!.needsUpdate = true;
     })
@@ -80,20 +131,26 @@ function getRoundFlagTexture(countryCode: string): THREE.Texture {
   return texture;
 }
 
-export async function preloadRoundFlagTextures(codes: string[]): Promise<void> {
+export async function preloadRoundFlagTextures(
+  codes: string[],
+  options?: { locked?: boolean },
+): Promise<void> {
+  const locked = options?.locked ?? false;
+
   await Promise.allSettled(
     codes.map(async (code) => {
-      const key = code.toUpperCase();
+      const key = textureCacheKey(code, locked);
       if (textureCache.has(key)) return;
 
+      const iso = code.toUpperCase();
       let img: HTMLImageElement | null = null;
       try {
-        img = await loadImage(countryFlagUrl(key, 80));
+        img = await loadImage(countryFlagUrl(iso, 80));
       } catch {
         img = null;
       }
 
-      const canvas = drawRoundFlagCanvas(img, key);
+      const canvas = locked ? drawLockedRoundFlagCanvas(img, iso) : drawRoundFlagCanvas(img, iso);
       const texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = THREE.SRGBColorSpace;
       textureCache.set(key, texture);
@@ -101,17 +158,21 @@ export async function preloadRoundFlagTextures(codes: string[]): Promise<void> {
   );
 }
 
-export function createFlagDiscObject(countryCode: string): THREE.Mesh {
+export function createFlagDiscObject(marker: GlobeCountryMarker | string): THREE.Mesh {
+  const countryCode = typeof marker === "string" ? marker : marker.countryCode;
+  const locked = typeof marker === "object" && marker.locked === true;
   const key = countryCode.toUpperCase();
-  const geometry = new THREE.CircleGeometry(DISC_RADIUS, 32);
+  const radius = locked ? LOCKED_DISC_RADIUS : DISC_RADIUS;
+  const geometry = new THREE.CircleGeometry(radius, 32);
   const material = new THREE.MeshBasicMaterial({
-    map: getRoundFlagTexture(key),
+    map: getRoundFlagTexture(key, locked),
     side: THREE.DoubleSide,
     transparent: true,
     depthWrite: false,
+    opacity: locked ? 0.92 : 1,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.renderOrder = 5;
+  mesh.renderOrder = locked ? 3 : 5;
   return mesh;
 }

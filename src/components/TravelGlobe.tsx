@@ -13,8 +13,10 @@ import {
   type GlobeCountryMarker,
 } from "@/lib/globe/country-flag-sprite";
 import { getCountryFocusAltitude, type FocusZoomSource } from "@/lib/globe/country-focus-altitude";
+import { getCountryDisplayName } from "@/lib/locations/country-display-names";
 import {
   getVisitedPolygonCapColor,
+  loadUnvisitedCountryMarkers,
   loadVisitedCountryPolygons,
   VISITED_POLYGON_SIDE_COLOR,
   VISITED_POLYGON_STROKE_COLOR,
@@ -107,18 +109,31 @@ export default function TravelGlobe() {
 
         container.innerHTML = "";
 
-        const markers: GlobeCountryMarker[] = data!.countries.map((c) => ({
+        const visitedMarkers: GlobeCountryMarker[] = data!.countries.map((c) => ({
           lat: c.lat,
           lng: c.lng,
           label: `${c.country_name} · ${c.video_count} video`,
           countryCode: c.country_code,
         }));
 
+        const unvisitedMarkers = await loadUnvisitedCountryMarkers(
+          data!.countries.map((c) => c.country_code),
+          getCountryDisplayName,
+        );
+        if (!mounted || !container) return;
+
+        const markers: GlobeCountryMarker[] = [...unvisitedMarkers, ...visitedMarkers];
+
         const countryByCode = new Map(
           data!.countries.map((country) => [country.country_code, country]),
         );
 
-        await preloadRoundFlagTextures(data!.countries.map((c) => c.country_code));
+        const visitedCodes = data!.countries.map((c) => c.country_code);
+        const unvisitedCodes = unvisitedMarkers.map((m) => m.countryCode);
+        await Promise.all([
+          preloadRoundFlagTextures(visitedCodes),
+          preloadRoundFlagTextures(unvisitedCodes, { locked: true }),
+        ]);
         if (!mounted || !container) return;
 
         const globe = new Globe(container, { animateIn: true })
@@ -162,14 +177,26 @@ export default function TravelGlobe() {
           .objectsData(markers)
           .objectLat("lat")
           .objectLng("lng")
-          .objectAltitude(0.015)
+          .objectAltitude((obj: object) => ((obj as GlobeCountryMarker).locked ? 0.012 : 0.015))
           .objectFacesSurface(true)
           .objectLabel("label")
-          .objectThreeObject((d) =>
-            createFlagDiscObject((d as GlobeCountryMarker).countryCode),
-          )
+          .objectThreeObject((d) => createFlagDiscObject(d as GlobeCountryMarker))
           .onObjectClick((obj: object) => {
             const marker = obj as GlobeCountryMarker;
+            if (marker.locked) {
+              selectionRef.current = null;
+              setSelection(null);
+              globe.pointOfView(
+                {
+                  lat: marker.lat,
+                  lng: marker.lng,
+                  altitude: getCountryFocusAltitude(marker.countryCode, "globe"),
+                },
+                FOCUS_ANIMATION_MS,
+              );
+              return;
+            }
+
             const country = countryByCode.get(marker.countryCode);
             if (!country) return;
             selectionRef.current = country;
