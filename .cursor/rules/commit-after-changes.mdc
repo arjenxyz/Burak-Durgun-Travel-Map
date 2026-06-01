@@ -1,0 +1,14 @@
+---
+description: Commit and push to main after every code change in this project
+alwaysApply: true
+---
+
+# Commit and push after changes
+
+After completing any code change in this project:
+
+1. Run `npm run build` when the change touches app code (unless the user skipped verification).
+2. Commit with a concise message focused on why.
+3. Push to `origin main` without being asked again.
+
+Do not leave completed work uncommitted. Only skip commit/push if the user explicitly says not to, or if there are no file changes.
